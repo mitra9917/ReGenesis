@@ -66,6 +66,12 @@ See [ml/README.md](ml/README.md) for YOLO training and endpoint deployment. Set 
 
 Embodied CO₂e and mass factors live in [shared/catalog/components_specs.json](shared/catalog/components_specs.json). Values are indicative ranges from public lifecycle literature — the UI shows estimates, not certified LCA.
 
+## Team roadmap (milestones / phases / issues)
+
+Full start→finish board with owners, labels, and what you can run in parallel or skip:
+
+→ **[docs/HACKATHON_PIPELINE.md](docs/HACKATHON_PIPELINE.md)** (includes Cursor AWS MCP setup)
+
 ## Team demo checklist
 
 - [ ] One server scenario end-to-end on deployed stack
