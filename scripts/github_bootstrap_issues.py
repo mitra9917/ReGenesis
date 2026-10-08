@@ -330,7 +330,10 @@ def create_issues(repo: str, dry_run: bool) -> None:
             skipped += 1
             continue
         labels = ",".join(spec.all_labels())
-        milestone_num = milestone_nums[spec.milestone]
+        # gh expects milestone *title*, not numeric id
+        milestone_title = spec.milestone
+        if milestone_title not in milestone_nums and not dry_run:
+            print(f"WARN: milestone missing: {milestone_title}", file=sys.stderr)
         args = [
             "issue",
             "create",
@@ -341,7 +344,7 @@ def create_issues(repo: str, dry_run: bool) -> None:
             "--label",
             labels,
             "--milestone",
-            str(milestone_num),
+            milestone_title,
         ]
         r = run_gh(args, repo, dry_run)
         if dry_run:
