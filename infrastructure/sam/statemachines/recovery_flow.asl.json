@@ -1,0 +1,53 @@
+{
+  "Comment": "RE:GENESIS recovery pipeline",
+  "StartAt": "InvokeDetection",
+  "States": {
+    "InvokeDetection": {
+      "Type": "Task",
+      "Resource": "${InvokeDetectionArn}",
+      "Retry": [
+        {
+          "ErrorEquals": ["States.TaskFailed", "Lambda.ServiceException"],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 2,
+          "BackoffRate": 2
+        }
+      ],
+      "Next": "ParseDetections"
+    },
+    "ParseDetections": {
+      "Type": "Task",
+      "Resource": "${ParseDetectionsArn}",
+      "Next": "PlanDisassembly"
+    },
+    "PlanDisassembly": {
+      "Type": "Task",
+      "Resource": "${PlanDisassemblyArn}",
+      "Next": "RunDiagnostics"
+    },
+    "RunDiagnostics": {
+      "Type": "Task",
+      "Resource": "${RunDiagnosticsArn}",
+      "Next": "GeneratePassports"
+    },
+    "GeneratePassports": {
+      "Type": "Task",
+      "Resource": "${GeneratePassportArn}",
+      "Next": "ImpactSummary"
+    },
+    "ImpactSummary": {
+      "Type": "Task",
+      "Resource": "${ImpactSummaryArn}",
+      "Next": "NotifyComplete"
+    },
+    "NotifyComplete": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::sns:publish",
+      "Parameters": {
+        "TopicArn": "${RecoveryCompleteTopicArn}",
+        "Message.$": "States.JsonToString($)"
+      },
+      "End": true
+    }
+  }
+}

@@ -1,0 +1,76 @@
+{
+  "_sources_note": "Indicative embodied carbon and mass ranges for hackathon estimates; not certified LCA.",
+  "component_types": {
+    "CPU": {
+      "avg_mass_kg": 0.08,
+      "embodied_co2e_kg_per_unit": 25,
+      "recoverability": 0.85,
+      "risk_penalty": 0.35,
+      "test_profile": "compute_stress"
+    },
+    "GPU": {
+      "avg_mass_kg": 1.2,
+      "embodied_co2e_kg_per_unit": 180,
+      "recoverability": 0.9,
+      "risk_penalty": 0.3,
+      "test_profile": "gpu_memory_compute"
+    },
+    "RAM": {
+      "avg_mass_kg": 0.05,
+      "embodied_co2e_kg_per_unit": 8,
+      "recoverability": 0.95,
+      "risk_penalty": 0.1,
+      "test_profile": "memory_pattern"
+    },
+    "SSD": {
+      "avg_mass_kg": 0.07,
+      "embodied_co2e_kg_per_unit": 12,
+      "recoverability": 0.92,
+      "risk_penalty": 0.1,
+      "test_profile": "smart_health"
+    },
+    "HDD": {
+      "avg_mass_kg": 0.6,
+      "embodied_co2e_kg_per_unit": 20,
+      "recoverability": 0.7,
+      "risk_penalty": 0.15,
+      "test_profile": "smart_health"
+    },
+    "PSU": {
+      "avg_mass_kg": 1.5,
+      "embodied_co2e_kg_per_unit": 45,
+      "recoverability": 0.75,
+      "risk_penalty": 0.4,
+      "test_profile": "voltage_regulation"
+    },
+    "NIC": {
+      "avg_mass_kg": 0.15,
+      "embodied_co2e_kg_per_unit": 15,
+      "recoverability": 0.88,
+      "risk_penalty": 0.15,
+      "test_profile": "loopback"
+    },
+    "Fan": {
+      "avg_mass_kg": 0.2,
+      "embodied_co2e_kg_per_unit": 5,
+      "recoverability": 0.8,
+      "risk_penalty": 0.1,
+      "test_profile": "rpm_stability"
+    },
+    "Battery": {
+      "avg_mass_kg": 0.35,
+      "embodied_co2e_kg_per_unit": 18,
+      "recoverability": 0.5,
+      "risk_penalty": 0.55,
+      "test_profile": "capacity_check"
+    },
+    "WiFi": {
+      "avg_mass_kg": 0.02,
+      "embodied_co2e_kg_per_unit": 4,
+      "recoverability": 0.9,
+      "risk_penalty": 0.1,
+      "test_profile": "loopback"
+    }
+  },
+  "baseline_shred_reuse_rate": 0.0
+}

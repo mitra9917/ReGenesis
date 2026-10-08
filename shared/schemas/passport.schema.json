@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SecondLifePassport",
+  "type": "object",
+  "required": [
+    "passport_id",
+    "component_id",
+    "device_id",
+    "timestamp",
+    "component_type",
+    "status",
+    "tests",
+    "signature"
+  ],
+  "properties": {
+    "passport_id": { "type": "string" },
+    "component_id": { "type": "string" },
+    "device_id": { "type": "string" },
+    "timestamp": { "type": "string", "format": "date-time" },
+    "component_type": { "type": "string" },
+    "manufacturer": { "type": "string" },
+    "model": { "type": "string" },
+    "serial": { "type": "string" },
+    "extraction_step": { "type": "integer" },
+    "tests": { "type": "object" },
+    "status": {
+      "type": "string",
+      "enum": ["qualified_for_reuse", "failed", "recycle_only"]
+    },
+    "notes": { "type": "string" },
+    "signature": { "type": "string" },
+    "detection_source": { "type": "string" }
+  },
+  "additionalProperties": true
+}

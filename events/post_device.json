@@ -1,0 +1,7 @@
+{
+  "httpMethod": "POST",
+  "body": "{\"device_model_key\": \"poweredge_r740\"}",
+  "headers": {
+    "Content-Type": "application/json"
+  }
+}

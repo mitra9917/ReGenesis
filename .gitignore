@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+*.so
+
+# Node
+node_modules/
+dist/
+.vite/
+
+# AWS SAM
+.aws-sam/
+samconfig.toml
+packaged.yaml
+
+# Secrets and local env
+.env
+.env.*
+!.env.example
+!**/env.example
+
+# IDE
+.idea/
+.vscode/
+*.swp
+.DS_Store
+
+# ML artifacts
+ml/runs/
+ml/weights/
+*.pt
+*.onnx
+model.tar.gz
+
+# Logs
+*.log

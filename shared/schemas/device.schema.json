@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DeviceRecord",
+  "type": "object",
+  "required": ["device_id", "device_model_key", "status", "created_at"],
+  "properties": {
+    "device_id": { "type": "string" },
+    "device_model_key": { "type": "string" },
+    "status": {
+      "type": "string",
+      "enum": ["INGESTED", "RECOVERING", "COMPLETED", "FAILED"]
+    },
+    "image_s3_key": { "type": "string" },
+    "execution_arn": { "type": "string" },
+    "detection_source": { "type": "string" },
+    "completeness_audit": { "type": "object" },
+    "impact_summary": { "type": "object" },
+    "created_at": { "type": "string" },
+    "updated_at": { "type": "string" }
+  }
+}

@@ -1,0 +1,82 @@
+{
+  "poweredge_r740": {
+    "display_name": "Dell PowerEdge R740",
+    "category": "rack_server",
+    "expected_components": {
+      "CPU": 2,
+      "RAM": 8,
+      "SSD": 4,
+      "GPU": 2,
+      "PSU": 2,
+      "NIC": 1
+    },
+    "attachment_graph": {
+      "nodes": [
+        {"id": "chassis", "type": "assembly", "label": "Chassis"},
+        {"id": "cover", "type": "assembly", "label": "Top cover", "parent": "chassis"},
+        {"id": "motherboard", "type": "board", "label": "Motherboard", "parent": "chassis"},
+        {"id": "psu_bay", "type": "assembly", "label": "PSU bay", "parent": "chassis"},
+        {"id": "gpu_risers", "type": "assembly", "label": "GPU risers", "parent": "motherboard"}
+      ],
+      "removal_rules": [
+        {"step": 1, "action": "Remove top cover", "targets": ["cover"], "risk": 0.1},
+        {"step": 2, "action": "Disconnect PSU cables", "targets": ["psu_bay"], "risk": 0.3},
+        {"step": 3, "action": "Extract PSUs", "targets": ["PSU"], "risk": 0.25},
+        {"step": 4, "action": "Remove GPU modules", "targets": ["GPU"], "risk": 0.35},
+        {"step": 5, "action": "Extract RAM modules", "targets": ["RAM"], "risk": 0.15},
+        {"step": 6, "action": "Extract SSDs", "targets": ["SSD"], "risk": 0.1},
+        {"step": 7, "action": "Remove CPUs (after heatsinks)", "targets": ["CPU"], "risk": 0.45},
+        {"step": 8, "action": "Remove NIC", "targets": ["NIC"], "risk": 0.2}
+      ]
+    },
+    "ocr_hints": ["PowerEdge", "R740", "Dell"]
+  },
+  "thinkpad_t14": {
+    "display_name": "Lenovo ThinkPad T14",
+    "category": "laptop",
+    "expected_components": {
+      "RAM": 2,
+      "SSD": 1,
+      "Battery": 1,
+      "WiFi": 1
+    },
+    "attachment_graph": {
+      "nodes": [
+        {"id": "base", "type": "assembly", "label": "Base enclosure"},
+        {"id": "bottom_panel", "type": "assembly", "label": "Bottom panel", "parent": "base"},
+        {"id": "mainboard", "type": "board", "label": "Mainboard", "parent": "base"}
+      ],
+      "removal_rules": [
+        {"step": 1, "action": "Remove bottom panel", "targets": ["bottom_panel"], "risk": 0.1},
+        {"step": 2, "action": "Disconnect battery", "targets": ["Battery"], "risk": 0.4},
+        {"step": 3, "action": "Extract SSD", "targets": ["SSD"], "risk": 0.1},
+        {"step": 4, "action": "Extract RAM", "targets": ["RAM"], "risk": 0.15},
+        {"step": 5, "action": "Remove WiFi module", "targets": ["WiFi"], "risk": 0.2}
+      ]
+    },
+    "ocr_hints": ["ThinkPad", "T14", "Lenovo"]
+  },
+  "cisco_catalyst_9300": {
+    "display_name": "Cisco Catalyst 9300",
+    "category": "network_switch",
+    "expected_components": {
+      "PSU": 2,
+      "Fan": 3,
+      "RAM": 2,
+      "SSD": 1,
+      "NIC": 1
+    },
+    "attachment_graph": {
+      "nodes": [
+        {"id": "chassis", "type": "assembly", "label": "Switch chassis"}
+      ],
+      "removal_rules": [
+        {"step": 1, "action": "Remove fan trays", "targets": ["Fan"], "risk": 0.2},
+        {"step": 2, "action": "Extract PSUs", "targets": ["PSU"], "risk": 0.25},
+        {"step": 3, "action": "Extract SSD", "targets": ["SSD"], "risk": 0.1},
+        {"step": 4, "action": "Extract RAM", "targets": ["RAM"], "risk": 0.15}
+      ]
+    },
+    "ocr_hints": ["Catalyst", "9300", "Cisco"]
+  }
+}

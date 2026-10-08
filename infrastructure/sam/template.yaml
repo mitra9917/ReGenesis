@@ -1,0 +1,463 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: RE:GENESIS - Adaptive electronics recovery pipeline
+
+Globals:
+  Function:
+    Runtime: python3.12
+    Timeout: 60
+    MemorySize: 512
+    Architectures:
+      - x86_64
+    Layers:
+      - !Ref RegenesisCommonLayer
+    Environment:
+      Variables:
+        ASSETS_BUCKET: !Ref AssetsBucket
+        DEVICES_TABLE: !Ref DevicesTable
+        COMPONENTS_TABLE: !Ref ComponentsTable
+        PASSPORTS_TABLE: !Ref PassportsTable
+        PIPELINE_EVENTS_TABLE: !Ref PipelineEventsTable
+        PASSPORT_KMS_KEY_ID: !Ref PassportSigningKey
+        METRICS_NAMESPACE: ReGenesis
+        DETECTION_MODE: !Ref DetectionMode
+        SAGEMAKER_ENDPOINT_NAME: !Ref SageMakerEndpointName
+        DETECTION_MIN_CONFIDENCE: "0.45"
+
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+  DetectionMode:
+    Type: String
+    Default: auto
+    AllowedValues:
+      - auto
+      - mock
+      - catalog
+  SageMakerEndpointName:
+    Type: String
+    Default: ""
+
+Resources:
+  AssetsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  UiBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      WebsiteConfiguration:
+        IndexDocument: index.html
+        ErrorDocument: index.html
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: false
+        BlockPublicPolicy: false
+        IgnorePublicAcls: false
+        RestrictPublicBuckets: false
+
+  UiBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref UiBucket
+      PolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal: "*"
+            Action: s3:GetObject
+            Resource: !Sub "${UiBucket.Arn}/*"
+
+  UiDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        DefaultRootObject: index.html
+        Origins:
+          - Id: UiS3
+            DomainName: !GetAtt UiBucket.RegionalDomainName
+            S3OriginConfig:
+              OriginAccessIdentity: ""
+        DefaultCacheBehavior:
+          TargetOriginId: UiS3
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods: [GET, HEAD, OPTIONS]
+          CachedMethods: [GET, HEAD]
+          ForwardedValues:
+            QueryString: false
+        CustomErrorResponses:
+          - ErrorCode: 404
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+
+  PassportSigningKey:
+    Type: AWS::KMS::Key
+    Properties:
+      Description: RE:GENESIS passport signing key
+      KeySpec: RSA_2048
+      KeyUsage: SIGN_VERIFY
+      EnableKeyRotation: false
+
+  PassportSigningKeyAlias:
+    Type: AWS::KMS::Alias
+    Properties:
+      AliasName: !Sub "alias/regenesis-passport-${Environment}"
+      TargetKeyId: !Ref PassportSigningKey
+
+  DevicesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: device_id
+          AttributeType: S
+        - AttributeName: status
+          AttributeType: S
+        - AttributeName: created_at
+          AttributeType: S
+      KeySchema:
+        - AttributeName: device_id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: StatusIndex
+          KeySchema:
+            - AttributeName: status
+              KeyType: HASH
+            - AttributeName: created_at
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+
+  ComponentsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: device_id
+          AttributeType: S
+        - AttributeName: component_id
+          AttributeType: S
+        - AttributeName: status
+          AttributeType: S
+      KeySchema:
+        - AttributeName: device_id
+          KeyType: HASH
+        - AttributeName: component_id
+          KeyType: RANGE
+      GlobalSecondaryIndexes:
+        - IndexName: DeviceStatusIndex
+          KeySchema:
+            - AttributeName: device_id
+              KeyType: HASH
+            - AttributeName: status
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+
+  PassportsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: passport_id
+          AttributeType: S
+        - AttributeName: device_id
+          AttributeType: S
+        - AttributeName: created_at
+          AttributeType: S
+      KeySchema:
+        - AttributeName: passport_id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: DevicePassportsIndex
+          KeySchema:
+            - AttributeName: device_id
+              KeyType: HASH
+            - AttributeName: created_at
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+
+  PipelineEventsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: device_id
+          AttributeType: S
+        - AttributeName: event_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: device_id
+          KeyType: HASH
+        - AttributeName: event_id
+          KeyType: RANGE
+
+  RecoveryCompleteTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub "regenesis-recovery-complete-${Environment}"
+
+  RegenesisCommonLayer:
+    Type: AWS::Serverless::LayerVersion
+    Metadata:
+      BuildMethod: python3.12
+    Properties:
+      LayerName: !Sub "regenesis-common-${Environment}"
+      ContentUri: ../../shared/layer/
+      CompatibleRuntimes:
+        - python3.12
+      RetentionPolicy: Delete
+
+  InvokeDetectionFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../../backend/functions/invoke_detection/
+      Handler: app.handler
+      Policies:
+        - S3ReadPolicy:
+            BucketName: !Ref AssetsBucket
+        - Statement:
+            - Effect: Allow
+              Action:
+                - sagemaker:InvokeEndpoint
+              Resource: "*"
+            - Effect: Allow
+              Action:
+                - textract:DetectDocumentText
+              Resource: "*"
+        - DynamoDBCrudPolicy:
+            TableName: !Ref PipelineEventsTable
+
+  ParseDetectionsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../../backend/functions/parse_detections/
+      Handler: app.handler
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref DevicesTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ComponentsTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref PipelineEventsTable
+
+  PlanDisassemblyFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../../backend/functions/plan_disassembly/
+      Handler: app.handler
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref DevicesTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ComponentsTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref PipelineEventsTable
+
+  RunDiagnosticsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../../backend/functions/run_diagnostics/
+      Handler: app.handler
+      Policies:
+        - S3CrudPolicy:
+            BucketName: !Ref AssetsBucket
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ComponentsTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref PipelineEventsTable
+
+  GeneratePassportFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../../backend/functions/generate_passport/
+      Handler: app.handler
+      Policies:
+        - S3CrudPolicy:
+            BucketName: !Ref AssetsBucket
+        - DynamoDBCrudPolicy:
+            TableName: !Ref PassportsTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ComponentsTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref PipelineEventsTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - kms:Sign
+                - kms:GetPublicKey
+              Resource: !GetAtt PassportSigningKey.Arn
+
+  ImpactSummaryFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../../backend/functions/impact_summary/
+      Handler: app.handler
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref DevicesTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref PipelineEventsTable
+        - CloudWatchPutMetricPolicy: {}
+
+  RecoveryStateMachine:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      Name: !Sub "ReGenesisRecoveryFlow-${Environment}"
+      DefinitionUri: statemachines/recovery_flow.asl.json
+      DefinitionSubstitutions:
+        InvokeDetectionArn: !GetAtt InvokeDetectionFunction.Arn
+        ParseDetectionsArn: !GetAtt ParseDetectionsFunction.Arn
+        PlanDisassemblyArn: !GetAtt PlanDisassemblyFunction.Arn
+        RunDiagnosticsArn: !GetAtt RunDiagnosticsFunction.Arn
+        GeneratePassportArn: !GetAtt GeneratePassportFunction.Arn
+        ImpactSummaryArn: !GetAtt ImpactSummaryFunction.Arn
+        RecoveryCompleteTopicArn: !Ref RecoveryCompleteTopic
+      Policies:
+        - LambdaInvokePolicy:
+            FunctionName: !Ref InvokeDetectionFunction
+        - LambdaInvokePolicy:
+            FunctionName: !Ref ParseDetectionsFunction
+        - LambdaInvokePolicy:
+            FunctionName: !Ref PlanDisassemblyFunction
+        - LambdaInvokePolicy:
+            FunctionName: !Ref RunDiagnosticsFunction
+        - LambdaInvokePolicy:
+            FunctionName: !Ref GeneratePassportFunction
+        - LambdaInvokePolicy:
+            FunctionName: !Ref ImpactSummaryFunction
+        - SNSPublishMessagePolicy:
+            TopicName: !GetAtt RecoveryCompleteTopic.TopicName
+
+  IngestFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../../backend/functions/ingest/
+      Handler: app.handler
+      Environment:
+        Variables:
+          RECOVERY_STATE_MACHINE_ARN: !Ref RecoveryStateMachine
+      Policies:
+        - S3CrudPolicy:
+            BucketName: !Ref AssetsBucket
+        - DynamoDBCrudPolicy:
+            TableName: !Ref DevicesTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref PipelineEventsTable
+        - StepFunctionsExecutionPolicy:
+            StateMachineName: !GetAtt RecoveryStateMachine.Name
+      Events:
+        CreateDevice:
+          Type: Api
+          Properties:
+            Path: /devices
+            Method: post
+        OptionsDevices:
+          Type: Api
+          Properties:
+            Path: /devices
+            Method: options
+
+  GetDeviceFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../../backend/functions/get_device/
+      Handler: app.handler
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref DevicesTable
+        - DynamoDBReadPolicy:
+            TableName: !Ref ComponentsTable
+        - DynamoDBReadPolicy:
+            TableName: !Ref PassportsTable
+      Events:
+        GetDevice:
+          Type: Api
+          Properties:
+            Path: /devices/{device_id}
+            Method: get
+
+  GetJobStatusFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../../backend/functions/get_job_status/
+      Handler: app.handler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - states:DescribeExecution
+              Resource: !Sub "arn:aws:states:${AWS::Region}:${AWS::AccountId}:execution:${RecoveryStateMachine.Name}:*"
+      Events:
+        GetJob:
+          Type: Api
+          Properties:
+            Path: /jobs
+            Method: get
+
+  GetPassportFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../../backend/functions/get_passport/
+      Handler: app.handler
+      Policies:
+        - S3ReadPolicy:
+            BucketName: !Ref AssetsBucket
+        - DynamoDBReadPolicy:
+            TableName: !Ref PassportsTable
+      Events:
+        GetPassport:
+          Type: Api
+          Properties:
+            Path: /passports/{passport_id}
+            Method: get
+
+  VerifyPassportFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../../backend/functions/verify_passport/
+      Handler: app.handler
+      Policies:
+        - S3ReadPolicy:
+            BucketName: !Ref AssetsBucket
+        - DynamoDBReadPolicy:
+            TableName: !Ref PassportsTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - kms:Verify
+                - kms:GetPublicKey
+              Resource: !GetAtt PassportSigningKey.Arn
+      Events:
+        VerifyPassport:
+          Type: Api
+          Properties:
+            Path: /passports/{passport_id}/verify
+            Method: get
+
+Outputs:
+  ApiUrl:
+    Description: API Gateway endpoint URL
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
+  UiBucketName:
+    Value: !Ref UiBucket
+  UiWebsiteUrl:
+    Value: !GetAtt UiBucket.WebsiteURL
+  CloudFrontUrl:
+    Value: !Sub "https://${UiDistribution.DomainName}"
+  RecoveryStateMachineArn:
+    Value: !Ref RecoveryStateMachine
+  AssetsBucketName:
+    Value: !Ref AssetsBucket
+  PassportKmsKeyId:
+    Value: !Ref PassportSigningKey
