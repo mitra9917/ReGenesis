@@ -180,16 +180,16 @@ You do **not** add one MCP per service (Lambda, S3, DynamoDB…). One (or a few)
 |----|-------|-------|--------|-----------|-------|-----------|
 | **I-2.2.1** | Train via `train_yolo.py` or notebook | Friend | `ml-model` `priority-p1` | Yes | Soft-skip | `best.pt` exists |
 | **I-2.2.2** | Record mAP / precision-recall for blog | Friend | `ml-model` `docs` | Yes | Soft-skip | Numbers ready for slides |
-| **I-2.2.3** | Verify local inference output matches API schema (`detections[]` + normalized bbox) | Friend | `ml-model` `backend` | Yes | Soft-skip | Sample JSON matches `ml/README.md` |
+| **I-2.2.3** | Verify local inference output matches API schema (`detections[]` + normalized bbox) | Friend | `ml-model` `backend` | Yes | Soft-skip | ✅ `verify_inference_schema.py` + `data/sample_inference_output.json`; 9-class map reserved for later |
 
 ### Phase 2.3 — Package & SageMaker endpoint
 
 | ID | Issue | Owner | Labels | Parallel? | Skip? | Done when |
 |----|-------|-------|--------|-----------|-------|-----------|
-| **I-2.3.1** | Build `model.tar.gz` (`model.pt` + `code/inference.py`) | Friend | `ml-model` `aws-integration` | Needs AWS account access | Soft-skip | Artifact in S3 |
-| **I-2.3.2** | Create SageMaker model + endpoint (smallest / serverless if possible) | Friend + You | `ml-model` `aws-integration` `devops-deploy` | After M1 stack | Soft-skip | Endpoint InService |
-| **I-2.3.3** | Cost guard: document “delete endpoint when idle” | Both | `devops-deploy` `docs` `priority-p0` | Yes | No | Teardown note in team chat |
-| **I-2.3.4** | Redeploy SAM: `SageMakerEndpointName=...` `DetectionMode=auto` | You | `infra-sam` `blocked-by-ml` | Blocked until 2.3.2 | Soft-skip | Env vars on Lambdas updated |
+| **I-2.3.1** | Build `model.tar.gz` (`model.pt` + `code/inference.py`) | Friend | `ml-model` `aws-integration` | Needs AWS account access | Soft-skip | ✅ `s3://regenesis-dev-assetsbucket-xp9zjtzuwy50/models/regenesis-yolo/model.tar.gz` |
+| **I-2.3.2** | Create SageMaker model + endpoint (smallest / serverless if possible) | Friend + You | `ml-model` `aws-integration` `devops-deploy` | After M1 stack | Soft-skip | ✅ `regenesis-yolo-dev` (`ml.m5.large`) — delete when idle |
+| **I-2.3.3** | Cost guard: document “delete endpoint when idle” | Both | `devops-deploy` `docs` `priority-p0` | Yes | No | ✅ `docs/SAGEMAKER_COST_GUARD.md` + `scripts/sagemaker_endpoint.sh` |
+| **I-2.3.4** | Redeploy SAM: `SageMakerEndpointName=...` `DetectionMode=auto` | You | `infra-sam` `blocked-by-ml` | Blocked until 2.3.2 | Soft-skip | ✅ `DetectionMode=auto` + `SageMakerEndpointName=regenesis-yolo-dev`; vision smoke OK |
 
 **Milestone 2 exit criteria:** Either (A) vision path works on a sample image, or (B) team agrees to demo catalog-assisted with clear UI badge (still valid).
 

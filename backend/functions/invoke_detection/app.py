@@ -5,7 +5,12 @@ from typing import Any, Dict, List
 import boto3
 
 from regenesis_common.aws_helpers import log_pipeline_event
-from regenesis_common.detection import catalog_assisted_detections, completeness_audit
+from regenesis_common.detection import (
+    catalog_assisted_detections,
+    completeness_audit,
+    merge_vision_with_catalog_gaps,
+    vision_detections_usable,
+)
 from regenesis_common.catalog import get_device_spec
 
 sm = boto3.client("sagemaker-runtime")
@@ -83,17 +88,17 @@ def handler(event, context):
         tried_sagemaker = False
         if endpoint and image_key:
             try:
-                detections = _sagemaker_detect(bucket, image_key, endpoint)
+                vision = _sagemaker_detect(bucket, image_key, endpoint)
                 tried_sagemaker = True
-                if detections:
-                    confs = [float(d.get("confidence", 0)) for d in detections]
-                    mean_conf = sum(confs) / len(confs) if confs else 0
-                    audit = completeness_audit(device_model_key, detections)
-                    if mean_conf >= min_conf and audit["score"] >= 0.5:
-                        detection_source = "vision"
-                    else:
-                        detections = catalog_assisted_detections(device_model_key)
-                        detection_source = "catalog-assisted"
+                if vision_detections_usable(vision, min_conf):
+                    merged = merge_vision_with_catalog_gaps(
+                        device_model_key, vision, min_confidence=min_conf
+                    )
+                    detections = merged["detections"]
+                    detection_source = merged["detection_source"]
+                else:
+                    detections = catalog_assisted_detections(device_model_key)
+                    detection_source = "catalog-assisted"
             except Exception:
                 detections = catalog_assisted_detections(device_model_key)
                 detection_source = "catalog-assisted"

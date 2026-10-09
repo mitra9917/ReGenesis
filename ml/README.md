@@ -33,7 +33,8 @@ python train_yolo.py --data ./data/data.yaml --epochs 30 --export onnx
 model.tar.gz
 ├── model.pt          # YOLO weights
 └── code/
-    ├── inference.py  # loads model, returns JSON detections
+    ├── inference.py      # loads model, returns JSON detections
+    ├── class_schema.py   # fixed 9-class map (reserved ids for later)
     └── requirements.txt
 ```
 
@@ -49,9 +50,28 @@ model.tar.gz
 
 `bbox` is normalized `[x, y, w, h]` relative to image dimensions (0–1).
 
+Canonical class ids (do not reorder — leftover classes stay empty until post-M6): see `training/class_schema.py`.
+
+### Local schema check (I-2.2.3)
+
+```bash
+cd ml/training
+source .venv/bin/activate
+python verify_inference_schema.py --conf 0.25
+# → SCHEMA CHECK PASSED; writes data/sample_inference_output.json
+```
+
+## Packaged artifact (I-2.3.1)
+
+```
+s3://regenesis-dev-assetsbucket-xp9zjtzuwy50/models/regenesis-yolo/model.tar.gz
+```
+
+Rebuild locally: see [packaging/README.md](packaging/README.md).
+
 ## Deploy endpoint
 
-After training:
+After the tarball is in S3:
 
 ```bash
 aws sagemaker create-model ...

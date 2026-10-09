@@ -1,0 +1,21 @@
+# I-2.1.3 — YOLO dataset config for RE:GENESIS
+# Used by: python train_yolo.py --data data/data.yaml
+# Path is relative to this file. On some Ultralytics versions, if training
+# resolves under ~/Downloads/datasets/, set an absolute path locally instead.
+
+path: regenesis_yolo
+train: train/images
+val: val/images
+test: test/images
+
+nc: 9
+names:
+  0: CPU
+  1: GPU
+  2: RAM
+  3: SSD
+  4: HDD
+  5: PSU
+  6: NIC
+  7: Fan
+  8: Other

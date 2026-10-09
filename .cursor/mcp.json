@@ -8,6 +8,9 @@
         "AWS_API_MCP_PROFILE_NAME": "regenesis",
         "READ_OPERATIONS_ONLY": "true"
       }
+    },
+    "roboflow": {
+      "url": "https://mcp.roboflow.com/mcp"
     }
   }
 }

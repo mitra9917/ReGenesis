@@ -7,7 +7,10 @@ s3_prefix = "regenesis"
 region = "ap-south-1"
 confirm_changeset = true
 capabilities = "CAPABILITY_IAM"
-parameter_overrides = "Environment=dev DetectionMode=auto SageMakerEndpointName="
+# Vision path (endpoint must exist — costs money while InService):
+parameter_overrides = "Environment=dev DetectionMode=auto SageMakerEndpointName=regenesis-yolo-dev"
+# Cheap / submit default (no SageMaker billing):
+# parameter_overrides = "Environment=dev DetectionMode=mock SageMakerEndpointName="
 image_repositories = []
 
 [default.build.parameters]

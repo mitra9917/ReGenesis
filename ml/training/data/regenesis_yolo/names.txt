@@ -1,0 +1,9 @@
+CPU
+GPU
+RAM
+SSD
+HDD
+PSU
+NIC
+Fan
+Other

@@ -19,6 +19,11 @@ def parse_args():
     p.add_argument("--batch", type=int, default=16)
     p.add_argument("--export", choices=["none", "onnx"], default="none")
     p.add_argument("--output-dir", default="runs/train")
+    p.add_argument(
+        "--device",
+        default="",
+        help="Ultralytics device: ''=auto, mps (Apple), cuda, cpu",
+    )
     return p.parse_args()
 
 
@@ -55,14 +60,17 @@ def main():
     write_sample_data_yaml(data_path)
 
     model = YOLO(args.model)
-    results = model.train(
-        data=str(data_path),
-        epochs=args.epochs,
-        imgsz=args.imgsz,
-        batch=args.batch,
-        project=args.output_dir,
-        name="regenesis-yolo",
-    )
+    train_kwargs = {
+        "data": str(data_path),
+        "epochs": args.epochs,
+        "imgsz": args.imgsz,
+        "batch": args.batch,
+        "project": args.output_dir,
+        "name": "regenesis-yolo",
+    }
+    if args.device:
+        train_kwargs["device"] = args.device
+    results = model.train(**train_kwargs)
 
     best = Path(results.save_dir) / "weights" / "best.pt"
     manifest = {
