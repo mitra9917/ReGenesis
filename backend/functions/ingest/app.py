@@ -6,7 +6,7 @@ from decimal import Decimal
 
 import boto3
 
-from regenesis_common.aws_helpers import log_pipeline_event, utc_now_iso
+from regenesis_common.aws_helpers import api_gateway_response, log_pipeline_event, utc_now_iso
 
 s3 = boto3.client("s3")
 sfn = boto3.client("stepfunctions")
@@ -17,21 +17,10 @@ def _table():
     return ddb.Table(os.environ["DEVICES_TABLE"])
 
 
-def _response(status: int, body: dict):
-    return {
-        "statusCode": status,
-        "headers": {
-            "Content-Type": "application/json",
-            "Access-Control-Allow-Origin": "*",
-        },
-        "body": json.dumps(body, default=str),
-    }
-
-
 def handler(event, context):
     try:
         if event.get("httpMethod") == "OPTIONS":
-            return _response(200, {})
+            return api_gateway_response(200, {})
 
         body = event.get("body") or "{}"
         if event.get("isBase64Encoded"):
@@ -79,7 +68,7 @@ def handler(event, context):
             ExpressionAttributeValues={":a": execution["executionArn"], ":u": now},
         )
 
-        return _response(
+        return api_gateway_response(
             202,
             {
                 "device_id": device_id,
@@ -88,4 +77,4 @@ def handler(event, context):
             },
         )
     except Exception as exc:
-        return _response(500, {"error": str(exc)})
+        return api_gateway_response(500, {"error": str(exc)})

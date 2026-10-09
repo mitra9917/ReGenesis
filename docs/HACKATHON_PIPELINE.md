@@ -323,6 +323,16 @@ gh auth login          # one-time, in your terminal
 python3 scripts/github_bootstrap_issues.py
 ```
 
+### SAM CLI on macOS (pyexpat error)
+
+If `sam build` fails with `ImportError: pyexpat` / `XML_SetAllocTrackerActivationThreshold`, run once per terminal:
+
+```bash
+source scripts/sam-env.sh
+```
+
+Or use `./scripts/deploy.sh` (includes the fix). Permanent fix: add the `DYLD_LIBRARY_PATH` line from `scripts/sam-env.sh` to your `~/.zshrc`.
+
 Options: `--repo mitra9917/ReGenesis` · `--dry-run` (preview commands)
 
 Re-run is safe: existing issue titles are skipped. Assign teammates manually using labels `owner-you` / `owner-friend` / `owner-both`.

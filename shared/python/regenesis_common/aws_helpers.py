@@ -22,6 +22,20 @@ def ddb_table(name_env: str):
     return boto3.resource("dynamodb").Table(os.environ[name_env])
 
 
+def api_gateway_response(status: int, body: Any, default=str) -> Dict[str, Any]:
+    """JSON response with CORS headers for browser clients (S3-hosted UI, Vite dev)."""
+    return {
+        "statusCode": status,
+        "headers": {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Headers": "Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token",
+            "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
+        },
+        "body": json.dumps(body, default=default),
+    }
+
+
 def log_pipeline_event(
     device_id: str,
     event_type: str,

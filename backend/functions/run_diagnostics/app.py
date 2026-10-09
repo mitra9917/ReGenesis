@@ -28,7 +28,8 @@ def handler(event, context):
         )
         components_table.update_item(
             Key={"device_id": device_id, "component_id": comp["component_id"]},
-            UpdateExpression="SET status = :s, test_results = :t, test_log_s3_key = :k",
+            UpdateExpression="SET #status = :s, test_results = :t, test_log_s3_key = :k",
+            ExpressionAttributeNames={"#status": "status"},
             ExpressionAttributeValues={
                 ":s": status,
                 ":t": json.dumps(result["test_results"]),

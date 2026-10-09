@@ -3,6 +3,11 @@ Transform: AWS::Serverless-2016-10-31
 Description: RE:GENESIS - Adaptive electronics recovery pipeline
 
 Globals:
+  Api:
+    Cors:
+      AllowMethods: "'GET,POST,OPTIONS'"
+      AllowHeaders: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
+      AllowOrigin: "'*'"
   Function:
     Runtime: python3.12
     Timeout: 60
@@ -76,28 +81,7 @@ Resources:
             Action: s3:GetObject
             Resource: !Sub "${UiBucket.Arn}/*"
 
-  UiDistribution:
-    Type: AWS::CloudFront::Distribution
-    Properties:
-      DistributionConfig:
-        Enabled: true
-        DefaultRootObject: index.html
-        Origins:
-          - Id: UiS3
-            DomainName: !GetAtt UiBucket.RegionalDomainName
-            S3OriginConfig:
-              OriginAccessIdentity: ""
-        DefaultCacheBehavior:
-          TargetOriginId: UiS3
-          ViewerProtocolPolicy: redirect-to-https
-          AllowedMethods: [GET, HEAD, OPTIONS]
-          CachedMethods: [GET, HEAD]
-          ForwardedValues:
-            QueryString: false
-        CustomErrorResponses:
-          - ErrorCode: 404
-            ResponseCode: 200
-            ResponsePagePath: /index.html
+  # CloudFront omitted until AWS account is verified for CDN (use S3 website URL or local Vite + ApiUrl).
 
   PassportSigningKey:
     Type: AWS::KMS::Key
@@ -209,8 +193,6 @@ Resources:
 
   RegenesisCommonLayer:
     Type: AWS::Serverless::LayerVersion
-    Metadata:
-      BuildMethod: python3.12
     Properties:
       LayerName: !Sub "regenesis-common-${Environment}"
       ContentUri: ../../shared/layer/
@@ -362,11 +344,6 @@ Resources:
           Properties:
             Path: /devices
             Method: post
-        OptionsDevices:
-          Type: Api
-          Properties:
-            Path: /devices
-            Method: options
 
   GetDeviceFunction:
     Type: AWS::Serverless::Function
@@ -453,8 +430,7 @@ Outputs:
     Value: !Ref UiBucket
   UiWebsiteUrl:
     Value: !GetAtt UiBucket.WebsiteURL
-  CloudFrontUrl:
-    Value: !Sub "https://${UiDistribution.DomainName}"
+  # CloudFrontUrl: add after account CDN verification
   RecoveryStateMachineArn:
     Value: !Ref RecoveryStateMachine
   AssetsBucketName:

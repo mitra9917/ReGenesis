@@ -39,7 +39,7 @@ export function UploadPage() {
     }
   }
 
-  const apiConfigured = Boolean(import.meta.env.VITE_API_URL);
+  const apiConfigured = Boolean(import.meta.env.VITE_API_URL || import.meta.env.DEV);
 
   return (
     <div className="card">

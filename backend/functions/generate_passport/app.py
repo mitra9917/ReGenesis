@@ -68,7 +68,8 @@ def handler(event, context):
         )
         components_table.update_item(
             Key={"device_id": device_id, "component_id": comp["component_id"]},
-            UpdateExpression="SET passport_id = :p, status = :s",
+            UpdateExpression="SET passport_id = :p, #status = :s",
+            ExpressionAttributeNames={"#status": "status"},
             ExpressionAttributeValues={":p": passport_id, ":s": "qualified"},
         )
         passports.append(body)

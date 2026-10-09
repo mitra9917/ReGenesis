@@ -16,7 +16,8 @@ def handler(event, context):
 
     ddb.Table(os.environ["DEVICES_TABLE"]).update_item(
         Key={"device_id": device_id},
-        UpdateExpression="SET impact_summary = :i, status = :s, updated_at = :u",
+        UpdateExpression="SET impact_summary = :i, #status = :s, updated_at = :u",
+        ExpressionAttributeNames={"#status": "status"},
         ExpressionAttributeValues={
             ":i": json.dumps(impact),
             ":s": "COMPLETED",
