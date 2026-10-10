@@ -54,6 +54,8 @@ sequenceDiagram
 | `catalog_assisted` | Low confidence, missing endpoint, or BOM mismatch | `catalog-assisted` |
 | `mock` | `DETECTION_MODE=mock` (local/SAM tests) | `mock` |
 
+**Model plate OCR (I-3.1.3):** In `DETECTION_MODE=auto`, InvokeDetection runs **Tesseract** (Lambda layer) on the uploaded image (or uses optional `plate_text`), matches catalog `ocr_hints`, and may **confirm** or **influence** `device_model_key`. Persisted as `ocr_confirmed` / `ocr_matched_hints` / `ocr_engine`.
+
 ## Failure handling
 
 - Step Functions retries Lambda service errors (2x, backoff).

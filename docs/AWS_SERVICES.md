@@ -11,7 +11,8 @@ Hackathon requirement: use at least one AWS open-source tool **or** deploy on AW
 | **S3** | Images, logs, passports | Durable artifact store |
 | **DynamoDB** | Devices, components, passports, events | Low-latency job status for UI |
 | **SageMaker** | YOLO endpoint (optional param) | Custom vision for PCB/server internals |
-| **Textract** | Model plate OCR in fallback | Links photo to catalog BOM |
+| **Tesseract (Lambda layer)** | Model plate OCR in `DETECTION_MODE=auto` | Free local OCR confirms / influences `device_model_key` via catalog `ocr_hints` (I-3.1.3). Layer: `scripts/fetch_tesseract_layer.py`. Optional `plate_text` on `POST /devices`. |
+| **Textract** | Optional / unused by default | Not used (free-tier / subscription limits). Kept out of InvokeDetection IAM. |
 | **KMS** | Sign / verify passports | Tamper-evident reuse credentials |
 | **SNS** | Job complete notification | Hook for ITAD ERP / Slack |
 | **CloudWatch** | Logs + custom metrics | Components recovered, CO₂e avoided |

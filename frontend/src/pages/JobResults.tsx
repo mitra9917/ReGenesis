@@ -42,6 +42,7 @@ export function JobResultsPage() {
 
   const device = data.device || {};
   const source = device.detection_source || "unknown";
+  const visionBadge = source === "vision" || source === "hybrid";
   const plan = typeof device.disassembly_plan === "string"
     ? JSON.parse(device.disassembly_plan)
     : device.disassembly_plan;
@@ -57,11 +58,21 @@ export function JobResultsPage() {
       <div className="card">
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <h2>Device {deviceId?.slice(0, 8)}…</h2>
-          <span className={source === "vision" ? "pill pill-vision" : "pill pill-catalog"}>
-            {source === "vision" ? "SageMaker vision" : source === "mock" ? "Mock" : "Catalog-assisted"}
+          <span className={visionBadge ? "pill pill-vision" : "pill pill-catalog"}>
+            {visionBadge ? "SageMaker vision" : source === "mock" ? "Mock" : "Catalog-assisted"}
           </span>
         </div>
         <p className="mono">Status: {device.status} · Step Functions: {jobStatus}</p>
+        {device.ocr_confirmed && (
+          <p style={{ marginTop: "0.5rem", fontSize: "0.9rem" }}>
+            Plate OCR ({device.ocr_engine || "tesseract"}) confirmed model{" "}
+            <code className="mono">{device.device_model_key}</code>
+            {Array.isArray(device.ocr_matched_hints) && device.ocr_matched_hints.length > 0
+              ? ` · hints: ${device.ocr_matched_hints.join(", ")}`
+              : ""}
+            {device.ocr_influenced ? " · model key updated from plate" : ""}
+          </p>
+        )}
       </div>
 
       <div className="grid-2">

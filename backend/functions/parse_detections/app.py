@@ -40,13 +40,30 @@ def handler(event, context):
 
     devices_table.update_item(
         Key={"device_id": device_id},
-        UpdateExpression="SET detection_source = :s, completeness_audit = :a, updated_at = :u",
+        UpdateExpression=(
+            "SET detection_source = :s, completeness_audit = :a, updated_at = :u, "
+            "device_model_key = :m, ocr_confirmed = :oc, ocr_influenced = :oi, "
+            "ocr_matched_hints = :oh, ocr_engine = :oe"
+        ),
         ExpressionAttributeValues={
             ":s": event.get("detection_source", "unknown"),
             ":a": json.dumps(event.get("completeness_audit", {})),
             ":u": utc_now_iso(),
+            ":m": event.get("device_model_key", "poweredge_r740"),
+            ":oc": bool(event.get("ocr_confirmed", False)),
+            ":oi": bool(event.get("ocr_influenced", False)),
+            ":oh": list(event.get("ocr_matched_hints") or []),
+            ":oe": event.get("ocr_engine") or "none",
         },
     )
-    log_pipeline_event(device_id, "parse", "succeeded", {"components": len(components)})
+    log_pipeline_event(
+        device_id,
+        "parse",
+        "succeeded",
+        {
+            "components": len(components),
+            "ocr_confirmed": bool(event.get("ocr_confirmed", False)),
+        },
+    )
 
     return {**event, "components": components}
