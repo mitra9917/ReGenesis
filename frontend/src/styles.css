@@ -3130,5 +3130,283 @@ select {
   background: #0d131e;
 }
 
+/* ==========================================================================
+   Issue I-5.6: Impact Page & EPA Scope 3 Carbon Ledger Polish
+   ========================================================================== */
+
+.badge-scope3 {
+  display: inline-block;
+  background: rgba(61, 214, 165, 0.12);
+  border: 1px solid rgba(61, 214, 165, 0.35);
+  color: var(--accent);
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.25rem 0.65rem;
+  border-radius: 999px;
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.impact-selector-card {
+  margin-bottom: 1.25rem;
+  padding: 1.25rem 1.5rem;
+}
+
+.selector-header-flex {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.selector-title {
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 0 0 0.2rem;
+}
+
+.selector-sub {
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin: 0;
+}
+
+.btn-audit-export {
+  font-size: 0.8rem;
+  padding: 0.35rem 0.75rem;
+}
+
+.device-pills-row {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.device-pill-btn {
+  background: #0f1520;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.45rem 0.85rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.device-pill-btn:hover {
+  color: var(--text);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.pill-btn-active {
+  background: rgba(61, 214, 165, 0.15);
+  border-color: rgba(61, 214, 165, 0.4);
+  color: var(--accent);
+}
+
+.live-query-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.query-label {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.input-text-sm {
+  background: #090e16;
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 0.35rem 0.65rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  min-width: 280px;
+}
+
+.query-error-note {
+  color: var(--danger);
+  font-size: 0.75rem;
+}
+
+.active-scope-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.85rem 1.25rem;
+  background: rgba(20, 28, 39, 0.6);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin-bottom: 1.5rem;
+}
+
+.scope-icon {
+  font-size: 1.5rem;
+}
+
+.scope-title {
+  display: block;
+  font-size: 0.95rem;
+  color: var(--text);
+}
+
+.scope-desc {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin-top: 0.15rem;
+}
+
+.kpi-range-box {
+  background: #0c121c;
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  padding: 0.4rem 0.65rem;
+  margin-top: 0.6rem;
+  font-size: 0.75rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.range-label {
+  color: var(--muted);
+}
+
+/* Equivalencies Grid */
+.badge-epa {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--vision);
+  background: rgba(110, 182, 255, 0.12);
+  border: 1px solid rgba(110, 182, 255, 0.3);
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+}
+
+.equiv-grid-4 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 1rem;
+}
+
+.equiv-item {
+  background: #0d131f;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1.25rem;
+  text-align: center;
+  transition: transform 0.15s ease;
+}
+
+.equiv-item:hover {
+  transform: translateY(-2px);
+  border-color: rgba(61, 214, 165, 0.35);
+}
+
+.equiv-icon {
+  font-size: 1.85rem;
+  display: block;
+  margin-bottom: 0.4rem;
+}
+
+.equiv-val {
+  font-size: 1.5rem;
+  font-weight: 800;
+  line-height: 1.1;
+  margin-bottom: 0.25rem;
+}
+
+.equiv-lbl {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 0.35rem;
+}
+
+.equiv-sub {
+  font-size: 0.72rem;
+  color: var(--muted);
+  line-height: 1.3;
+}
+
+/* Minerals Grid */
+.minerals-grid-4 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.mineral-box {
+  background: #0d131f;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1.1rem;
+}
+
+.mineral-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.mineral-symbol {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.85rem;
+  font-weight: 800;
+  background: rgba(61, 214, 165, 0.15);
+  color: var(--accent);
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+}
+
+.mineral-name {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.mineral-val {
+  font-size: 1.4rem;
+  font-weight: 800;
+  margin-bottom: 0.4rem;
+}
+
+.mineral-desc {
+  font-size: 0.75rem;
+  color: var(--muted);
+  line-height: 1.4;
+  margin: 0;
+}
+
+.slider-label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.35rem;
+}
+
+.fleet-tons {
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.pill-sub {
+  font-size: 0.72rem;
+  color: var(--muted);
+  margin-left: 0.35rem;
+}
+
+
 
 
