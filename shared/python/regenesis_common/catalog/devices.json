@@ -20,13 +20,13 @@
       ],
       "removal_rules": [
         {"step": 1, "action": "Remove top cover", "targets": ["cover"], "risk": 0.1},
-        {"step": 2, "action": "Disconnect PSU cables", "targets": ["psu_bay"], "risk": 0.3},
-        {"step": 3, "action": "Extract PSUs", "targets": ["PSU"], "risk": 0.25},
-        {"step": 4, "action": "Remove GPU modules", "targets": ["GPU"], "risk": 0.35},
-        {"step": 5, "action": "Extract RAM modules", "targets": ["RAM"], "risk": 0.15},
+        {"step": 2, "action": "Remove GPU modules (risers)", "targets": ["GPU"], "risk": 0.35},
+        {"step": 3, "action": "Extract hot-plug PSUs", "targets": ["PSU"], "risk": 0.25},
+        {"step": 4, "action": "Remove CPUs (after heatsinks)", "targets": ["CPU"], "risk": 0.45},
+        {"step": 5, "action": "Remove NIC module", "targets": ["NIC"], "risk": 0.2},
         {"step": 6, "action": "Extract SSDs", "targets": ["SSD"], "risk": 0.1},
-        {"step": 7, "action": "Remove CPUs (after heatsinks)", "targets": ["CPU"], "risk": 0.45},
-        {"step": 8, "action": "Remove NIC", "targets": ["NIC"], "risk": 0.2}
+        {"step": 7, "action": "Extract RAM modules", "targets": ["RAM"], "risk": 0.15},
+        {"step": 8, "action": "Disconnect PSU bay cables", "targets": ["psu_bay"], "risk": 0.3}
       ]
     },
     "ocr_hints": ["PowerEdge", "R740", "Dell"]
@@ -71,10 +71,11 @@
         {"id": "chassis", "type": "assembly", "label": "Switch chassis"}
       ],
       "removal_rules": [
-        {"step": 1, "action": "Remove fan trays", "targets": ["Fan"], "risk": 0.2},
-        {"step": 2, "action": "Extract PSUs", "targets": ["PSU"], "risk": 0.25},
+        {"step": 1, "action": "Extract hot-plug PSUs", "targets": ["PSU"], "risk": 0.25},
+        {"step": 2, "action": "Remove network module (NIC)", "targets": ["NIC"], "risk": 0.2},
         {"step": 3, "action": "Extract SSD", "targets": ["SSD"], "risk": 0.1},
-        {"step": 4, "action": "Extract RAM", "targets": ["RAM"], "risk": 0.15}
+        {"step": 4, "action": "Extract RAM", "targets": ["RAM"], "risk": 0.15},
+        {"step": 5, "action": "Remove fan trays", "targets": ["Fan"], "risk": 0.2}
       ]
     },
     "ocr_hints": ["Catalyst", "9300", "Cisco"]

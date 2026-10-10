@@ -373,6 +373,9 @@ Resources:
             TableName: !Ref ComponentsTable
         - DynamoDBReadPolicy:
             TableName: !Ref PassportsTable
+        - DynamoDBReadPolicy:
+            TableName: !Ref PipelineEventsTable
+
       Events:
         GetDevice:
           Type: Api
@@ -380,8 +383,24 @@ Resources:
             Path: /devices/{device_id}
             Method: get
 
+  GetEventsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../../backend/functions/get_events/
+      Handler: app.handler
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref PipelineEventsTable
+      Events:
+        GetEvents:
+          Type: Api
+          Properties:
+            Path: /devices/{device_id}/events
+            Method: get
+
   GetJobStatusFunction:
     Type: AWS::Serverless::Function
+
     Properties:
       CodeUri: ../../backend/functions/get_job_status/
       Handler: app.handler

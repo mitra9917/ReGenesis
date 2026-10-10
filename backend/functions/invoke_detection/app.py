@@ -107,64 +107,77 @@ def handler(event, context):
 
     log_pipeline_event(device_id, "detect", "started", {"mode": mode})
 
-    if mode == "mock":
-        detections = _mock_detections(device_model_key)
-        detection_source = "mock"
-    elif mode == "catalog":
-        detections = catalog_assisted_detections(device_model_key)
-        detection_source = "catalog-assisted"
-    else:
-        ocr = _ocr_model_hint(bucket, image_key, device_model_key, plate_text=plate_text)
-        device_model_key = ocr.get("device_model_key") or device_model_key
-        tried_sagemaker = False
-        if endpoint and image_key:
-            try:
-                vision = _sagemaker_detect(bucket, image_key, endpoint)
-                tried_sagemaker = True
-                if vision_detections_usable(vision, min_conf):
-                    merged = merge_vision_with_catalog_gaps(
-                        device_model_key, vision, min_confidence=min_conf
-                    )
-                    detections = merged["detections"]
-                    detection_source = api_detection_source(merged["detection_source"])
-                else:
-                    detections = catalog_assisted_detections(device_model_key)
-                    detection_source = "catalog-assisted"
-            except Exception:
-                detections = catalog_assisted_detections(device_model_key)
-                detection_source = "catalog-assisted"
+    try:
+        if mode == "mock":
+            detections = _mock_detections(device_model_key)
+            detection_source = "mock"
+        elif mode == "catalog":
+            detections = catalog_assisted_detections(device_model_key, device_id=device_id)
+            detection_source = "catalog-assisted"
         else:
-            detections = catalog_assisted_detections(device_model_key)
-            detection_source = "catalog-assisted" if not tried_sagemaker else detection_source
+            ocr = _ocr_model_hint(bucket, image_key, device_model_key, plate_text=plate_text)
+            device_model_key = ocr.get("device_model_key") or device_model_key
+            tried_sagemaker = False
+            raw_vision = None
+            if endpoint and image_key:
+                try:
+                    vision = _sagemaker_detect(bucket, image_key, endpoint)
+                    tried_sagemaker = True
+                    if vision_detections_usable(vision, min_conf):
+                        raw_vision = vision
+                        merged = merge_vision_with_catalog_gaps(
+                            device_model_key, vision, min_confidence=min_conf, device_id=device_id
+                        )
+                        detections = merged["detections"]
+                        detection_source = api_detection_source(merged["detection_source"])
+                    else:
+                        detections = catalog_assisted_detections(device_model_key, device_id=device_id)
+                        detection_source = "catalog-assisted"
+                except Exception:
+                    detections = catalog_assisted_detections(device_model_key, device_id=device_id)
+                    detection_source = "catalog-assisted"
+            else:
+                detections = catalog_assisted_detections(device_model_key, device_id=device_id)
+                detection_source = "catalog-assisted" if not tried_sagemaker else detection_source
 
-    audit = completeness_audit(device_model_key, detections)
+        if raw_vision is not None:
+            audit = completeness_audit(device_model_key, raw_vision, tolerance=min_conf)
+            audit["remediation"] = "Augmented with catalog-assisted BOM items for recovery plan completeness"
+        else:
+            audit = completeness_audit(device_model_key, detections)
 
-    out = {
-        **event,
-        "device_model_key": device_model_key,
-        "image_s3_key": image_key,
-        "detections": detections,
-        "detection_source": detection_source,
-        "completeness_audit": audit,
-        "ocr_confirmed": bool(ocr.get("confirmed")),
-        "ocr_influenced": bool(ocr.get("influenced")),
-        "ocr_matched_hints": list(ocr.get("matched_hints") or []),
-        "ocr_engine": ocr.get("engine") or "none",
-    }
-    if ocr.get("error"):
-        out["ocr_error"] = ocr["error"]
-    log_pipeline_event(
-        device_id,
-        "detect",
-        "succeeded",
-        {
-            "source": detection_source,
-            "count": len(detections),
+        out = {
+            **event,
+            "device_model_key": device_model_key,
             "image_s3_key": image_key,
-            "ocr_confirmed": out["ocr_confirmed"],
-            "ocr_matched_hints": out["ocr_matched_hints"],
-            "ocr_engine": out["ocr_engine"],
-            "ocr_error": ocr.get("error") or "",
-        },
-    )
-    return out
+            "detections": detections,
+            "detection_source": detection_source,
+            "completeness_audit": audit,
+            "ocr_confirmed": bool(ocr.get("confirmed")),
+            "ocr_influenced": bool(ocr.get("influenced")),
+            "ocr_matched_hints": list(ocr.get("matched_hints") or []),
+            "ocr_engine": ocr.get("engine") or "none",
+        }
+        if ocr.get("error"):
+            out["ocr_error"] = ocr["error"]
+        log_pipeline_event(
+            device_id,
+            "detect",
+            "succeeded",
+            {
+                "source": detection_source,
+                "count": len(detections),
+                "image_s3_key": image_key,
+                "ocr_confirmed": out["ocr_confirmed"],
+                "ocr_matched_hints": out["ocr_matched_hints"],
+                "ocr_engine": out["ocr_engine"],
+                "ocr_error": ocr.get("error") or "",
+                "audit_score": audit.get("score"),
+                "audit_gaps": len(audit.get("gaps", [])),
+            },
+        )
+        return out
+    except Exception as exc:
+        log_pipeline_event(device_id, "detect", "failed", {"error": str(exc)})
+        raise
+

@@ -93,4 +93,7 @@ def handler(event, context):
             },
         )
     except Exception as exc:
+        target_dev = device_id if "device_id" in locals() and device_id else "unknown"
+        log_pipeline_event(target_dev, "ingest", "failed", {"error": str(exc)})
         return api_gateway_response(500, {"error": str(exc)})
+
