@@ -1,33 +1,47 @@
 import { useCallback, useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import { getDevice, getJob, SAMPLE_GOLDEN_RUNS } from "../api";
 import { DetectionOverlay } from "../components/DetectionOverlay";
 import { PlanTimeline } from "../components/PlanTimeline";
 import { PassportCard } from "../components/PassportCard";
 import { ImpactPanel } from "../components/ImpactPanel";
 
-const STAGE_ORDER = ["ingest", "detect", "parse", "plan", "test", "passport", "impact"];
+const PIPELINE_STAGES = [
+  { id: "ingest", label: "01 Ingest", desc: "S3 Image Upload" },
+  { id: "detect", label: "02 Detect", desc: "YOLOv8 Vision" },
+  { id: "parse", label: "03 Parse", desc: "BOM Audit" },
+  { id: "plan", label: "04 Plan", desc: "RVS Scheduler" },
+  { id: "test", label: "05 Test", desc: "Diagnostics" },
+  { id: "passport", label: "06 Passport", desc: "KMS Signing" },
+  { id: "impact", label: "07 Impact", desc: "LCA Ledger" },
+];
 
 function PipelineEventsTable({ events }: { events: any[] }) {
   if (!events || events.length === 0) {
-    return <p style={{ color: "var(--muted)", fontSize: "0.85rem" }}>No pipeline events recorded yet.</p>;
+    return (
+      <div className="empty-state-card">
+        <span className="empty-state-icon">📋</span>
+        <p className="empty-state-title">No Pipeline Events Logged Yet</p>
+        <p className="empty-state-desc">Events will appear here as each Step Functions Lambda stage completes.</p>
+      </div>
+    );
   }
   return (
-    <div className="impact-breakdown-wrap" style={{ marginTop: "0.5rem" }}>
-      <table className="impact-table" style={{ width: "100%", fontSize: "0.8rem" }}>
+    <div className="impact-breakdown-wrap">
+      <table className="impact-table">
         <thead>
           <tr>
-            <th style={{ textAlign: "left", paddingRight: "1rem" }}>Time (UTC)</th>
-            <th style={{ textAlign: "left", paddingRight: "1rem" }}>Stage</th>
-            <th style={{ textAlign: "left", paddingRight: "1rem" }}>Status</th>
-            <th style={{ textAlign: "left" }}>Detail</th>
+            <th>Time (UTC)</th>
+            <th>Stage</th>
+            <th>Status</th>
+            <th>Detail</th>
           </tr>
         </thead>
         <tbody>
           {events.map((ev: any) => {
             const isOk = ev.status === "succeeded";
             const isFail = ev.status === "failed";
-            const color = isOk ? "var(--accent)" : isFail ? "var(--danger)" : "#f59e0b";
+            const color = isOk ? "var(--accent)" : isFail ? "var(--danger)" : "var(--warn)";
             const detail = typeof ev.detail === "object" ? ev.detail : {};
             const detailStr = Object.entries(detail)
               .slice(0, 4)
@@ -35,16 +49,16 @@ function PipelineEventsTable({ events }: { events: any[] }) {
               .join(" · ");
             return (
               <tr key={ev.event_id}>
-                <td style={{ fontFamily: "monospace", whiteSpace: "nowrap", paddingRight: "1rem", color: "var(--muted)" }}>
+                <td className="font-mono text-muted text-xs whitespace-nowrap">
                   {(ev.created_at || "").replace("T", " ").replace("Z", "")}
                 </td>
-                <td style={{ fontWeight: 600, paddingRight: "1rem", textTransform: "uppercase", fontSize: "0.7rem", letterSpacing: "0.05em" }}>
+                <td className="font-semibold text-uppercase text-xs tracking-wider">
                   {ev.event_type}
                 </td>
-                <td style={{ color, fontWeight: 700, paddingRight: "1rem" }}>
+                <td style={{ color }} className="font-bold">
                   {ev.status}
                 </td>
-                <td style={{ color: "var(--muted)" }}>{detailStr || "-"}</td>
+                <td className="text-muted text-xs">{detailStr || "-"}</td>
               </tr>
             );
           })}
@@ -54,11 +68,48 @@ function PipelineEventsTable({ events }: { events: any[] }) {
   );
 }
 
+function JobResultsSkeleton({ deviceId }: { deviceId: string }) {
+  return (
+    <div className="job-skeleton-wrap">
+      <div className="card skeleton-card">
+        <div className="skeleton-header-row">
+          <div className="skeleton-bar skeleton-title-bar"></div>
+          <div className="skeleton-pill"></div>
+        </div>
+        <div className="skeleton-bar skeleton-sub-bar"></div>
+      </div>
+
+      <div className="card skeleton-card">
+        <div className="skeleton-pipeline-bar">
+          <div className="skeleton-step"></div>
+          <div className="skeleton-step"></div>
+          <div className="skeleton-step"></div>
+          <div className="skeleton-step"></div>
+          <div className="skeleton-step"></div>
+          <div className="skeleton-step"></div>
+          <div className="skeleton-step"></div>
+        </div>
+        <p className="skeleton-loading-note">
+          <span className="status-dot-pulse"></span>
+          <span>Connecting to AWS Step Functions for device <strong>{deviceId}</strong>…</span>
+        </p>
+      </div>
+
+      <div className="grid-2">
+        <div className="card skeleton-card skeleton-box-large"></div>
+        <div className="card skeleton-card skeleton-box-large"></div>
+      </div>
+    </div>
+  );
+}
+
 export function JobResultsPage() {
   const { deviceId } = useParams<{ deviceId: string }>();
   const [data, setData] = useState<any>(null);
   const [jobStatus, setJobStatus] = useState<string>("RUNNING");
+  const [activeTab, setActiveTab] = useState<"all" | "audit" | "plan" | "passports" | "events">("all");
   const [error, setError] = useState("");
+  const [copiedArn, setCopiedArn] = useState(false);
 
   const load = useCallback(async () => {
     if (!deviceId) return null;
@@ -191,8 +242,27 @@ export function JobResultsPage() {
     };
   }, [load, data]);
 
-  if (error) return <div className="card">{error}</div>;
-  if (!data) return <div className="card">Loading device {deviceId}…</div>;
+  if (error && !data) {
+    return (
+      <div className="card verify-error-box error-remediation-box">
+        <div className="error-header">
+          <span className="error-icon">⚠️</span>
+          <h3>Device Recovery Polling Notice</h3>
+        </div>
+        <p className="error-message">{error}</p>
+        <div className="error-remediation-action">
+          <button className="btn btn-sm btn-outline" onClick={() => load()}>
+            Retry Polling
+          </button>
+          <Link to="/devices/sample-r740" className="btn btn-sm btn-primary">
+            Switch to Dell R740 Golden Demo Dashboard →
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (!data) return <JobResultsSkeleton deviceId={deviceId || "unknown"} />;
 
   const device = data.device || {};
   const source = device.detection_source || "unknown";
@@ -212,131 +282,244 @@ export function JobResultsPage() {
       ? "var(--accent)"
       : ["FAILED", "TIMED_OUT", "ABORTED"].includes(jobStatus)
       ? "var(--danger)"
-      : "#f59e0b";
+      : "var(--warn)";
+
+  const executionArn = sessionStorage.getItem(`execution_${deviceId}`) || device.execution_arn;
+
+  function copyArn() {
+    if (executionArn) {
+      navigator.clipboard.writeText(executionArn);
+      setCopiedArn(true);
+      setTimeout(() => setCopiedArn(false), 2000);
+    }
+  }
+
+  // Derive completed stages for the tracker
+  const events = data.pipeline_events || [];
+  const completedStageSet = new Set(events.filter((e: any) => e.status === "succeeded").map((e: any) => e.event_type));
 
   return (
-    <>
-      <div className="card">
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <h2>Device {deviceId?.slice(0, 8)}…</h2>
-          <span className={visionBadge ? "pill pill-vision" : "pill pill-catalog"}>
-            {visionBadge ? "SageMaker vision" : source === "mock" ? "Mock" : "Catalog-assisted"}
-          </span>
+    <div className="job-results-page">
+      {/* Top Device Header Card */}
+      <div className="card device-banner-card">
+        <div className="device-banner-top">
+          <div>
+            <div className="device-title-row">
+              <h1 className="device-banner-title">
+                {device.display_name || `Hardware Recovery: ${device.device_model_key || deviceId}`}
+              </h1>
+              <span className={visionBadge ? "pill pill-vision" : "pill pill-catalog"}>
+                {visionBadge ? "SageMaker Vision Active" : source === "mock" ? "Mock Mode" : "Catalog-Assisted Fallback"}
+              </span>
+            </div>
+            <p className="device-banner-sub">
+              ID: <span className="font-mono text-accent">{deviceId}</span>
+              {device.serial_hint && (
+                <> · Serial Tag: <span className="font-mono">{device.serial_hint}</span></>
+              )}
+            </p>
+          </div>
+
+          <div className="device-status-badge-box">
+            <span className="status-label-tiny">Step Functions Status</span>
+            <div className="status-main-pill" style={{ borderColor: jobColor }}>
+              <span className="status-dot-pulse" style={{ background: jobColor, boxShadow: `0 0 8px ${jobColor}` }}></span>
+              <strong style={{ color: jobColor }}>{jobStatus}</strong>
+            </div>
+          </div>
         </div>
-        <p className="mono">
-          Status: {device.status} · Step Functions:{" "}
-          <strong style={{ color: jobColor }}>{jobStatus}</strong>
-        </p>
-        {device.ocr_confirmed && (
-          <p style={{ marginTop: "0.5rem", fontSize: "0.9rem" }}>
-            Plate OCR ({device.ocr_engine || "tesseract"}) confirmed model{" "}
-            <code className="mono">{device.device_model_key}</code>
-            {Array.isArray(device.ocr_matched_hints) && device.ocr_matched_hints.length > 0
-              ? ` · hints: ${device.ocr_matched_hints.join(", ")}`
-              : ""}
-            {device.ocr_influenced ? " · model key updated from plate" : ""}
-          </p>
-        )}
+
+        {/* 7-Stage Pipeline Tracker Bar */}
+        <div className="pipeline-tracker-wrap">
+          <div className="pipeline-tracker-header">
+            <span className="tracker-title">RecoveryFlow State Machine Progress:</span>
+            {executionArn && (
+              <button className="btn-copy-arn font-mono" onClick={copyArn} title="Copy Step Functions ARN">
+                {copiedArn ? "✓ Copied ARN" : "Copy Execution ARN"}
+              </button>
+            )}
+          </div>
+
+          <div className="stages-flow-bar">
+            {PIPELINE_STAGES.map((st) => {
+              const isFinished = completedStageSet.has(st.id) || jobStatus === "SUCCEEDED";
+              const isCurrent = !isFinished && jobStatus === "RUNNING";
+              return (
+                <div
+                  key={st.id}
+                  className={`stage-step-pill ${
+                    isFinished ? "stage-finished" : isCurrent ? "stage-active" : "stage-pending"
+                  }`}
+                >
+                  <span className="step-icon">{isFinished ? "✓" : isCurrent ? "●" : "○"}</span>
+                  <div className="step-texts">
+                    <span className="step-name">{st.label}</span>
+                    <span className="step-desc-sub">{st.desc}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Dashboard Navigation Filter Tabs */}
+        <div className="dashboard-tabs-bar">
+          <button
+            className={`dash-tab ${activeTab === "all" ? "dash-tab-active" : ""}`}
+            onClick={() => setActiveTab("all")}
+          >
+            All Sections
+          </button>
+          <button
+            className={`dash-tab ${activeTab === "audit" ? "dash-tab-active" : ""}`}
+            onClick={() => setActiveTab("audit")}
+          >
+            BOM Audit {audit?.gap_count > 0 && `(${audit.gap_count} Gaps)`}
+          </button>
+          <button
+            className={`dash-tab ${activeTab === "plan" ? "dash-tab-active" : ""}`}
+            onClick={() => setActiveTab("plan")}
+          >
+            RVS Disassembly Plan
+          </button>
+          <button
+            className={`dash-tab ${activeTab === "passports" ? "dash-tab-active" : ""}`}
+            onClick={() => setActiveTab("passports")}
+          >
+            Digital Passports ({data.passports?.length || 0})
+          </button>
+          <button
+            className={`dash-tab ${activeTab === "events" ? "dash-tab-active" : ""}`}
+            onClick={() => setActiveTab("events")}
+          >
+            Pipeline Audit Log ({events.length})
+          </button>
+        </div>
       </div>
 
-      <div className="grid-2">
-        <div className="card">
-          <h3>Detection</h3>
-          <DetectionOverlay components={data.components || []} />
-          {audit && (
-            <div className={`audit-card ${audit.gaps?.length ? "audit-card-warn" : "audit-card-ok"}`}>
-              <div className="audit-header">
-                <div>
-                  <strong>BOM Completeness:</strong>{" "}
-                  <span style={{ fontWeight: 700, color: audit.score >= 0.8 ? "var(--accent)" : "var(--warn)" }}>
-                    {Math.round(audit.score * 100)}%
-                  </span>
-                  {audit.total_expected !== undefined && (
-                    <span style={{ color: "var(--muted)", marginLeft: "0.4rem", fontSize: "0.78rem" }}>
-                      ({audit.total_detected}/{audit.total_expected} parts)
-                    </span>
-                  )}
-                </div>
-                <span className={`pill ${audit.gaps?.length ? "pill-catalog" : "pill-vision"}`} style={{ fontSize: "0.7rem" }}>
-                  {audit.gaps?.length ? `${audit.gaps.length} Gap(s) Flagged` : "Within BOM Tolerance"}
+      {/* SECTION: Completeness Audit */}
+      {(activeTab === "all" || activeTab === "audit") && audit && (
+        <div className={`card ${audit.gap_count > 0 ? "audit-card-warn" : "audit-card-ok"}`}>
+          <div className="audit-header">
+            <div>
+              <h3 className="card-heading">
+                BOM Completeness Audit:{" "}
+                <span style={{ color: audit.gap_count > 0 ? "var(--warn)" : "var(--accent)" }}>
+                  {audit.score ?? 100}% Score
                 </span>
-              </div>
+              </h3>
+              <p className="card-subtext">
+                Compares optical vision detections against catalog engineering BOM specifications.
+              </p>
+            </div>
+            <span
+              className="pill"
+              style={{
+                background: audit.gap_count > 0 ? "rgba(245, 185, 66, 0.2)" : "rgba(61, 214, 165, 0.2)",
+                color: audit.gap_count > 0 ? "var(--warn)" : "var(--accent)",
+              }}
+            >
+              {audit.status === "complete" ? "✓ 100% BOM Satisfied" : `${audit.gap_count} Under-Detected Gap(s)`}
+            </span>
+          </div>
 
-              {audit.gaps?.length > 0 && (
-                <div className="audit-gaps-list">
-                  {audit.gaps.map((g: any, gIdx: number) => {
-                    const sevClass =
-                      g.severity === "critical"
-                        ? "severity-critical"
-                        : g.severity === "high"
-                        ? "severity-high"
-                        : "severity-medium";
-                    return (
-                      <div key={gIdx} className="gap-item">
-                        <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
-                          <span className={`pill ${sevClass}`} style={{ fontSize: "0.65rem", padding: "0.1rem 0.35rem" }}>
-                            {g.severity || "gap"}
-                          </span>
-                          <strong>{g.comp_type}</strong>
-                          <span style={{ color: "var(--muted)" }}>
-                            {g.detected}/{g.expected} detected ({g.missing} missing)
-                          </span>
-                        </div>
-                        {g.deficit_pct !== undefined && (
-                          <span style={{ fontSize: "0.75rem", color: "var(--warn)", fontWeight: 600 }}>
-                            -{g.deficit_pct}%
-                          </span>
-                        )}
-                      </div>
-                    );
-                  })}
+          {audit.gaps && audit.gaps.length > 0 && (
+            <div className="audit-gaps-list">
+              {audit.gaps.map((gap: any) => (
+                <div key={gap.comp_type} className="gap-item">
+                  <div>
+                    <strong>{gap.comp_type}</strong>: detected {gap.detected}/{gap.expected} ({gap.missing} missing, {gap.deficit_pct}% deficit)
+                    <div style={{ color: "var(--muted)", fontSize: "0.75rem", marginTop: "0.15rem" }}>
+                      {gap.message} · <em>{gap.remediation}</em>
+                    </div>
+                  </div>
+                  <span className={`pill severity-${gap.severity}`}>{gap.severity}</span>
                 </div>
-              )}
+              ))}
             </div>
           )}
         </div>
-        <div className="card">
-          <h3>Disassembly plan (RVS)</h3>
-          <PlanTimeline plan={plan} />
-        </div>
-      </div>
+      )}
 
-      {impact && (
+      {/* SECTION: Detections & Disassembly Plan */}
+      {(activeTab === "all" || activeTab === "plan") && (
+        <div className="grid-2">
+          <div className="card">
+            <h3 className="card-heading">Computer Vision Bounding Boxes</h3>
+            <p className="card-subtext">
+              {device.image_s3_key ? `Input key: ${device.image_s3_key}` : "Catalog-assisted optical layout"}
+            </p>
+            <DetectionOverlay
+              imageS3Key={device.image_s3_key}
+              detections={data.detections || []}
+              deviceModelKey={device.device_model_key || "poweredge_r740"}
+            />
+          </div>
+
+          <div className="card">
+            <h3 className="card-heading">RVS Prioritized Disassembly Timeline</h3>
+            <p className="card-subtext">
+              Schedules high-value components first (GPUs &amp; PSUs) while respecting attachment dependencies.
+            </p>
+            <PlanTimeline plan={plan} />
+          </div>
+        </div>
+      )}
+
+      {/* SECTION: Environmental Impact Ledger */}
+      {(activeTab === "all" || activeTab === "audit") && (
         <div className="card">
-          <h3>Environmental impact</h3>
+          <h3 className="card-heading">Environmental Impact Summary</h3>
+          <p className="card-subtext">
+            Avoided embodied carbon and diverted landfill mass citing peer-reviewed manufacturer benchmarks:
+          </p>
           <ImpactPanel impact={impact} />
         </div>
       )}
 
-      <div className="card">
-        <h3>Second-Life Passports</h3>
-        {(data.passports || []).length === 0 && <p style={{ color: "var(--muted)" }}>Pending pipeline completion…</p>}
-        {(data.passports || []).map((p: { passport_id: string }) => (
-          <PassportCard key={p.passport_id} passportId={p.passport_id} />
-        ))}
-      </div>
+      {/* SECTION: Second-Life Hardware Passports */}
+      {(activeTab === "all" || activeTab === "passports") && (
+        <div className="card">
+          <div className="passport-section-header">
+            <div>
+              <h3 className="card-heading">Second-Life Digital Product Passports</h3>
+              <p className="card-subtext">
+                Certified subassemblies with deterministic diagnostic health scores, cryptographically signed with AWS KMS.
+              </p>
+            </div>
+            <Link to="/passports" className="btn btn-sm btn-outline">
+              Open Full DPP Registry Workbench →
+            </Link>
+          </div>
 
-      <div className="card">
-        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "0.5rem" }}>
-          <h3 style={{ margin: 0 }}>Pipeline Audit Log</h3>
-          <span className="pill pill-catalog" style={{ fontSize: "0.68rem" }}>
-            {(data.pipeline_events || []).length} events
-          </span>
+          {data.passports && data.passports.length > 0 ? (
+            <div className="passports-grid">
+              {data.passports.map((p: any) => (
+                <PassportCard key={p.passport_id} passport={p} />
+              ))}
+            </div>
+          ) : (
+            <div className="empty-state-card">
+              <span className="empty-state-icon">🛡️</span>
+              <p className="empty-state-title">Passports Not Yet Minted</p>
+              <p className="empty-state-desc">
+                Digital product passports will be issued after the diagnostics testing stage completes.
+              </p>
+            </div>
+          )}
         </div>
-        <div style={{ fontSize: "0.78rem", color: "var(--muted)", marginBottom: "0.75rem" }}>
-          Stages: {STAGE_ORDER.map((s, i) => (
-            <span key={s}>
-              <span style={{ fontWeight: (data.pipeline_events || []).some((e: any) => e.event_type === s && e.status === "succeeded") ? 700 : 400,
-                color: (data.pipeline_events || []).some((e: any) => e.event_type === s && e.status === "failed") ? "var(--danger)" :
-                  (data.pipeline_events || []).some((e: any) => e.event_type === s && e.status === "succeeded") ? "var(--accent)" : "var(--muted)" }}>
-                {s}
-              </span>
-              {i < STAGE_ORDER.length - 1 && <span style={{ color: "var(--muted)", margin: "0 0.3rem" }}>&#8250;</span>}
-            </span>
-          ))}
+      )}
+
+      {/* SECTION: Pipeline Audit Log */}
+      {(activeTab === "all" || activeTab === "events") && (
+        <div className="card">
+          <h3 className="card-heading">Pipeline Audit Log (DynamoDB PipelineEvents)</h3>
+          <p className="card-subtext">
+            Chronological audit trail across all Step Functions Lambda stages:
+          </p>
+          <PipelineEventsTable events={events} />
         </div>
-        <PipelineEventsTable events={data.pipeline_events || []} />
-      </div>
-    </>
+      )}
+    </div>
   );
 }
