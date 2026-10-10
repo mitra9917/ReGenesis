@@ -716,10 +716,27 @@ select {
   padding: 0.35rem 0.85rem;
 }
 
-/* Landing Page Hero & Stats */
-.hero-section {
-  padding: 2.5rem 0 3rem;
-  text-align: center;
+/* ==========================================================================
+   Landing Page Hero & Live Triage Simulator (First Viewport Excellence)
+   ========================================================================== */
+
+.hero-split-section {
+  display: grid;
+  grid-template-columns: 1.15fr 0.95fr;
+  gap: 2.75rem;
+  align-items: center;
+  padding: 1.5rem 0 3.5rem;
+}
+
+@media (max-width: 960px) {
+  .hero-split-section {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+}
+
+.hero-content-col {
+  text-align: left;
 }
 
 .hero-badge {
@@ -731,16 +748,17 @@ select {
   color: var(--accent);
   font-size: 0.8rem;
   font-weight: 600;
-  padding: 0.3rem 0.85rem;
+  padding: 0.35rem 0.85rem;
   border-radius: 9999px;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.25rem;
 }
 
 .badge-pulse {
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
   background: var(--accent);
+  box-shadow: 0 0 6px var(--accent);
 }
 
 .hero-title {
@@ -752,42 +770,512 @@ select {
 }
 
 .gradient-text {
-  background: linear-gradient(135deg, var(--accent) 0%, var(--vision) 100%);
+  background: linear-gradient(135deg, var(--accent) 0%, var(--vision) 60%, var(--violet) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
-.hero-subtitle {
-  max-width: 780px;
-  margin: 0 auto 2rem;
-  color: var(--muted);
+.hero-lead {
+  color: var(--text);
   font-size: 1.1rem;
   line-height: 1.6;
+  margin: 0 0 0.85rem;
+}
+
+.hero-lead strong {
+  color: #fff;
+}
+
+.hero-sublead {
+  color: var(--muted);
+  font-size: 0.95rem;
+  line-height: 1.6;
+  margin: 0 0 1.75rem;
+}
+
+.hero-sublead strong {
+  color: var(--text);
 }
 
 .hero-actions {
   display: flex;
-  justify-content: center;
-  gap: 1rem;
+  gap: 0.85rem;
   flex-wrap: wrap;
-  margin-bottom: 3rem;
+  margin-bottom: 2rem;
 }
 
 .hero-btn {
-  padding: 0.8rem 1.6rem;
-  font-size: 0.95rem;
+  padding: 0.75rem 1.4rem;
+  font-size: 0.9rem;
   font-weight: 600;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: all 0.2s ease;
 }
 
-.btn-icon {
-  margin-right: 0.4rem;
+.hero-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+.hero-trust-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-subtle);
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.trust-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+/* ==========================================================================
+   Live Triage Simulator Component (Interactive Hero Widget)
+   ========================================================================== */
+
+.hero-simulator-col {
+  width: 100%;
+}
+
+.triage-simulator-card {
+  background: rgba(18, 26, 38, 0.85);
+  border: 1px solid rgba(61, 214, 165, 0.35);
+  border-radius: 16px;
+  padding: 1.25rem;
+  box-shadow:
+    0 12px 40px rgba(0, 0, 0, 0.4),
+    0 0 30px rgba(61, 214, 165, 0.1);
+  backdrop-filter: blur(12px);
+  position: relative;
+  overflow: hidden;
+}
+
+.sim-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  font-size: 0.8rem;
+}
+
+.sim-status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.sim-chip {
+  background: rgba(61, 214, 165, 0.12);
+  color: var(--accent);
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+}
+
+.sim-device-tabs {
+  display: flex;
+  gap: 0.4rem;
+  background: #090d14;
+  border: 1px solid var(--border);
+  padding: 0.25rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+.sim-tab {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.45rem 0.5rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.sim-tab:hover {
+  color: var(--text);
+}
+
+.sim-tab-active {
+  background: rgba(61, 214, 165, 0.15);
+  color: var(--accent);
+  border: 1px solid rgba(61, 214, 165, 0.3);
+}
+
+.sim-visual-box {
+  background: #0a0f18;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1.1rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.sim-overlay-scanline {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  box-shadow: 0 0 10px var(--accent);
+  animation: scanlineMove 3s infinite ease-in-out;
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+@keyframes scanlineMove {
+  0% { top: 0%; opacity: 0; }
+  10% { opacity: 0.8; }
+  90% { opacity: 0.8; }
+  100% { top: 100%; opacity: 0; }
+}
+
+.sim-screen-header {
+  margin-bottom: 0.85rem;
+}
+
+.sim-device-name {
+  font-size: 1.1rem;
+  font-weight: 700;
+  display: block;
+  margin-bottom: 0.35rem;
+}
+
+.sim-meta-tags {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.badge-neutral {
+  background: #0f1520;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 0.7rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+}
+
+.sim-detected-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.45rem;
+  margin-bottom: 1rem;
+}
+
+.sim-component-pill {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #0f1520;
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  padding: 0.35rem 0.6rem;
+  font-size: 0.75rem;
+}
+
+.pill-type {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.pill-grade {
+  font-size: 0.7rem;
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.pill-score {
+  font-size: 0.7rem;
+  color: var(--muted);
+  font-family: monospace;
+}
+
+.sim-metrics-banner {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+  background: #111823;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.65rem;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.sim-metric-val {
+  font-size: 1rem;
+  font-weight: 800;
+  display: block;
+  line-height: 1.1;
+}
+
+.sim-metric-lbl {
+  font-size: 0.7rem;
+  color: var(--muted);
+  margin-top: 0.15rem;
+}
+
+.sim-actions-footer {
+  margin-top: 0.5rem;
+}
+
+.w-full {
+  width: 100%;
+}
+
+/* ==========================================================================
+   Problem vs Solution Contrast Section
+   ========================================================================== */
+
+.contrast-section {
+  margin: 3.5rem 0;
+}
+
+.contrast-toggle-wrap {
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.contrast-toggle-btn {
+  background: #0f1520;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 0.6rem 1.25rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.contrast-toggle-btn:hover {
+  color: var(--text);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.contrast-toggle-btn.active-problem {
+  background: rgba(240, 113, 120, 0.15);
+  border-color: rgba(240, 113, 120, 0.4);
+  color: var(--danger);
+}
+
+.contrast-toggle-btn.active-solution {
+  background: rgba(61, 214, 165, 0.15);
+  border-color: rgba(61, 214, 165, 0.4);
+  color: var(--accent);
+}
+
+.contrast-card {
+  border-radius: 14px;
+  padding: 2rem;
+  position: relative;
+}
+
+.contrast-problem-card {
+  background: rgba(240, 113, 120, 0.04);
+  border: 1px solid rgba(240, 113, 120, 0.3);
+}
+
+.contrast-solution-card {
+  background: rgba(61, 214, 165, 0.04);
+  border: 1px solid rgba(61, 214, 165, 0.3);
+}
+
+.contrast-badge-pill {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  margin-bottom: 0.75rem;
+}
+
+.problem-pill {
+  background: rgba(240, 113, 120, 0.2);
+  color: var(--danger);
+}
+
+.solution-pill {
+  background: rgba(61, 214, 165, 0.2);
+  color: var(--accent);
+}
+
+.contrast-card-title {
+  font-size: 1.4rem;
+  font-weight: 800;
+  margin: 0 0 0.5rem;
+}
+
+.contrast-card-text {
+  color: var(--muted);
+  font-size: 0.95rem;
+  line-height: 1.6;
+  max-width: 840px;
+  margin: 0 0 1.5rem;
+}
+
+.contrast-points-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1.25rem;
+}
+
+.contrast-point {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--text);
+}
+
+.point-icon {
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+/* ==========================================================================
+   Fleet Teaser Simulator (Landing Page ESG Calculator)
+   ========================================================================== */
+
+.fleet-teaser-section {
+  margin-bottom: 3.5rem;
+}
+
+.fleet-teaser-card {
+  padding: 1.75rem;
+  background: radial-gradient(circle at top right, rgba(56, 189, 248, 0.08), var(--surface) 60%);
+  border-color: rgba(56, 189, 248, 0.3);
+}
+
+.teaser-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.teaser-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0 0 0.25rem;
+}
+
+.teaser-subtitle {
+  color: var(--muted);
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+.teaser-slider-box {
+  min-width: 240px;
+}
+
+.slider-label {
+  font-size: 0.85rem;
+  color: var(--text);
+  display: block;
+}
+
+.teaser-kpis-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.teaser-kpi {
+  background: #0f1520;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.85rem;
+}
+
+.teaser-kpi-val {
+  font-size: 1.35rem;
+  font-weight: 800;
+  display: block;
+  line-height: 1.1;
+}
+
+.teaser-kpi-lbl {
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin-top: 0.25rem;
+}
+
+.teaser-footer {
+  font-size: 0.85rem;
+  border-top: 1px solid var(--border);
+  padding-top: 0.75rem;
+}
+
+/* ==========================================================================
+   Final Call To Action Banner
+   ========================================================================== */
+
+.final-cta-section {
+  margin: 3rem 0;
+}
+
+.final-cta-card {
+  background: linear-gradient(135deg, rgba(61, 214, 165, 0.12), rgba(56, 189, 248, 0.08));
+  border: 1px solid rgba(61, 214, 165, 0.35);
+  border-radius: 16px;
+  padding: 2.5rem 1.5rem;
+  text-align: center;
+}
+
+.cta-heading {
+  font-size: 1.75rem;
+  font-weight: 800;
+  margin: 0 0 0.5rem;
+}
+
+.cta-subheading {
+  color: var(--muted);
+  max-width: 600px;
+  margin: 0 auto 1.5rem;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.cta-button-row {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+/* Stats Section */
+.stats-banner-section {
+  margin-bottom: 3.5rem;
 }
 
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 1.25rem;
-  margin-top: 1.5rem;
 }
 
 .stat-card {
@@ -828,27 +1316,6 @@ select {
   font-size: 0.75rem;
   color: var(--muted);
   margin-top: 0.25rem;
-}
-
-/* Devices Section */
-.devices-section {
-  margin-bottom: 3.5rem;
-}
-
-.section-header {
-  margin-bottom: 1.5rem;
-}
-
-.section-title {
-  font-size: 1.6rem;
-  font-weight: 700;
-  margin: 0 0 0.4rem;
-}
-
-.section-subtitle {
-  color: var(--muted);
-  font-size: 0.95rem;
-  margin: 0;
 }
 
 .device-cards-grid {
