@@ -267,7 +267,7 @@ You do **not** add one MCP per service (Lambda, S3, DynamoDB…). One (or a few)
 
 | ID | Issue | Owner | Labels | Parallel? | Skip? | Done when |
 |----|-------|-------|--------|-----------|-------|-----------|
-| **I-5.1** | Information architecture + route map | Both | `frontend` `docs` | After M1 | Soft-skip: keep 2 pages | Routes agreed |
+| **I-5.1** | Information architecture + route map | Both | `frontend` `docs` | After M1 | Soft-skip: keep 2 pages | ✅ Multipage IA & route map delivered: Documented full IA and routes in `docs/FRONTEND_ROUTE_MAP.md`. Implemented full route hierarchy in `main.tsx` and `App.tsx`: `/` (Landing/problem + live KPIs + device selector), `/recovery` (Intake photo upload + OCR hints + serial binding), `/devices/:deviceId` (Live Step Functions monitor + BOM completeness audit + RVS timeline + passports + pipeline events), `/passports` (DPP registry + 1-click KMS verification + tamper simulator), `/impact` (Empirical LCA carbon avoided ranges + critical minerals + fleet scale simulator), `/architecture` (AWS 7-stage Step Functions pipeline + services matrix for judges). Verified with clean TypeScript Vite production build (`dist/`). |
 | **I-5.2** | Shared layout, nav, design tokens (minimal sleek) | You or Friend | `frontend` `priority-p1` | After M1 | Soft-skip | Consistent look |
 | **I-5.3** | Landing page (problem + CTA) | Either | `frontend` | After M1 | Soft-skip | First viewport strong |
 | **I-5.4** | Recovery + live dashboard polish (loading, empty, errors) | Either | `frontend` `priority-p0` | After M1 | No | Demo path frictionless |
