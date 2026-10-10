@@ -92,8 +92,11 @@ def catalog_assisted_detections(
     device_model_key: str,
     image_width: int = 1,
     image_height: int = 1,
+    device_id: Optional[str] = None,
 ) -> List[Dict[str, Any]]:
-    """Generate normalized placeholder boxes arranged in a grid from BOM."""
+    """Generate normalized placeholder boxes arranged in a grid from BOM.
+    When device_id is provided, detection_id is generated deterministically.
+    """
     spec = get_device_spec(device_model_key)
     expected = spec["expected_components"]
     detections: List[Dict[str, Any]] = []
@@ -105,9 +108,13 @@ def catalog_assisted_detections(
             w, h = 0.18, 0.12
             x = 0.05 + col * 0.22
             y = 0.05 + row * 0.15
+            if device_id:
+                det_id = str(uuid.uuid5(uuid.NAMESPACE_DNS, f"{device_id}:{comp_type}:{idx}"))
+            else:
+                det_id = str(uuid.uuid4())
             detections.append(
                 {
-                    "detection_id": str(uuid.uuid4()),
+                    "detection_id": det_id,
                     "class": comp_type,
                     "comp_type": comp_type,
                     "confidence": 0.75,
@@ -147,6 +154,7 @@ def merge_vision_with_catalog_gaps(
     device_model_key: str,
     vision_detections: List[Dict[str, Any]],
     min_confidence: float = 0.45,
+    device_id: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Keep confident vision boxes; catalog only fills missing BOM type counts.
 
@@ -173,9 +181,13 @@ def merge_vision_with_catalog_gaps(
         for _ in range(need):
             row = idx // 4
             col = idx % 4
+            if device_id:
+                filler_id = str(uuid.uuid5(uuid.NAMESPACE_DNS, f"{device_id}:filler:{comp_type}:{idx}"))
+            else:
+                filler_id = str(uuid.uuid4())
             fillers.append(
                 {
-                    "detection_id": str(uuid.uuid4()),
+                    "detection_id": filler_id,
                     "class": comp_type,
                     "comp_type": comp_type,
                     "confidence": 0.75,

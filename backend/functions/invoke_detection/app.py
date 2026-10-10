@@ -111,7 +111,7 @@ def handler(event, context):
         detections = _mock_detections(device_model_key)
         detection_source = "mock"
     elif mode == "catalog":
-        detections = catalog_assisted_detections(device_model_key)
+        detections = catalog_assisted_detections(device_model_key, device_id=device_id)
         detection_source = "catalog-assisted"
     else:
         ocr = _ocr_model_hint(bucket, image_key, device_model_key, plate_text=plate_text)
@@ -125,18 +125,18 @@ def handler(event, context):
                 if vision_detections_usable(vision, min_conf):
                     raw_vision = vision
                     merged = merge_vision_with_catalog_gaps(
-                        device_model_key, vision, min_confidence=min_conf
+                        device_model_key, vision, min_confidence=min_conf, device_id=device_id
                     )
                     detections = merged["detections"]
                     detection_source = api_detection_source(merged["detection_source"])
                 else:
-                    detections = catalog_assisted_detections(device_model_key)
+                    detections = catalog_assisted_detections(device_model_key, device_id=device_id)
                     detection_source = "catalog-assisted"
             except Exception:
-                detections = catalog_assisted_detections(device_model_key)
+                detections = catalog_assisted_detections(device_model_key, device_id=device_id)
                 detection_source = "catalog-assisted"
         else:
-            detections = catalog_assisted_detections(device_model_key)
+            detections = catalog_assisted_detections(device_model_key, device_id=device_id)
             detection_source = "catalog-assisted" if not tried_sagemaker else detection_source
 
     if raw_vision is not None:

@@ -1,3 +1,4 @@
+# pyrefly: ignore [missing-import]
 from regenesis_common.catalog import get_device_spec
 from regenesis_common.detection import (
     catalog_assisted_detections,
