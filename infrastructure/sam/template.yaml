@@ -453,3 +453,6 @@ Outputs:
     Value: !Ref AssetsBucket
   PassportKmsKeyId:
     Value: !Ref PassportSigningKey
+  RecoveryCompleteTopicArn:
+    Description: SNS Topic ARN for recovery completion notifications
+    Value: !Ref RecoveryCompleteTopic

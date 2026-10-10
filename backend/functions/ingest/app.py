@@ -31,12 +31,15 @@ def handler(event, context):
         device_id = str(uuid.uuid4())
         bucket = os.environ["ASSETS_BUCKET"]
         content_type = payload.get("content_type", "image/jpeg")
-        ext = "jpg" if "jpeg" in content_type else "png"
-        has_image = bool(payload.get("image_base64"))
+        ext = "png" if "png" in content_type.lower() else "jpg"
+        b64_img = payload.get("image_base64") or payload.get("image")
+        has_image = bool(b64_img)
         image_key = f"images/{device_id}/original.{ext}" if has_image else ""
 
         if has_image:
-            raw = base64.b64decode(payload["image_base64"])
+            if isinstance(b64_img, str) and "," in b64_img:
+                b64_img = b64_img.split(",", 1)[1]
+            raw = base64.b64decode(b64_img)
             s3.put_object(Bucket=bucket, Key=image_key, Body=raw, ContentType=content_type)
 
         plate_text = (payload.get("plate_text") or payload.get("ocr_text") or "").strip()
@@ -86,6 +89,7 @@ def handler(event, context):
                 "device_id": device_id,
                 "execution_arn": execution["executionArn"],
                 "status": "RECOVERY_STARTED",
+                "image_s3_key": image_key,
             },
         )
     except Exception as exc:

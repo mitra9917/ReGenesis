@@ -13,29 +13,55 @@ export function JobResultsPage() {
   const [error, setError] = useState("");
 
   const load = useCallback(async () => {
-    if (!deviceId) return;
+    if (!deviceId) return null;
     const res = await getDevice(deviceId);
     setData(res);
     const arn = sessionStorage.getItem(`execution_${deviceId}`) || res.device?.execution_arn;
+    let currentJobStatus = jobStatus;
     if (arn) {
-      const job = await getJob(arn);
-      setJobStatus(job.status);
+      try {
+        const job = await getJob(arn);
+        if (job?.status) {
+          currentJobStatus = job.status;
+          setJobStatus(job.status);
+        }
+      } catch (jobErr) {
+        console.warn("Job status poll warning:", jobErr);
+      }
     }
-  }, [deviceId]);
+    return { device: res?.device, jobStatus: currentJobStatus };
+  }, [deviceId, jobStatus]);
 
   useEffect(() => {
     let timer: ReturnType<typeof setInterval>;
+    let isCancelled = false;
+
     const poll = async () => {
       try {
-        await load();
+        const result = await load();
+        if (isCancelled) return;
+        setError("");
+        const devStatus = result?.device?.status;
+        const jStatus = result?.jobStatus;
+        const isJobDone = ["SUCCEEDED", "FAILED", "TIMED_OUT", "ABORTED"].includes(jStatus);
+        const isDeviceDone = ["COMPLETED", "FAILED"].includes(devStatus);
+        if (isJobDone && isDeviceDone) {
+          clearInterval(timer);
+        }
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Load failed");
+        if (!isCancelled && !data) {
+          setError(e instanceof Error ? e.message : "Load failed");
+        }
       }
     };
+
     poll();
     timer = setInterval(poll, 3000);
-    return () => clearInterval(timer);
-  }, [load]);
+    return () => {
+      isCancelled = true;
+      clearInterval(timer);
+    };
+  }, [load, data]);
 
   if (error) return <div className="card">{error}</div>;
   if (!data) return <div className="card">Loading device {deviceId}…</div>;
@@ -53,6 +79,13 @@ export function JobResultsPage() {
     ? JSON.parse(device.completeness_audit)
     : device.completeness_audit;
 
+  const jobColor =
+    jobStatus === "SUCCEEDED"
+      ? "var(--accent)"
+      : ["FAILED", "TIMED_OUT", "ABORTED"].includes(jobStatus)
+      ? "var(--danger)"
+      : "#f59e0b";
+
   return (
     <>
       <div className="card">
@@ -62,7 +95,10 @@ export function JobResultsPage() {
             {visionBadge ? "SageMaker vision" : source === "mock" ? "Mock" : "Catalog-assisted"}
           </span>
         </div>
-        <p className="mono">Status: {device.status} · Step Functions: {jobStatus}</p>
+        <p className="mono">
+          Status: {device.status} · Step Functions:{" "}
+          <strong style={{ color: jobColor }}>{jobStatus}</strong>
+        </p>
         {device.ocr_confirmed && (
           <p style={{ marginTop: "0.5rem", fontSize: "0.9rem" }}>
             Plate OCR ({device.ocr_engine || "tesseract"}) confirmed model{" "}

@@ -38,23 +38,29 @@ def handler(event, context):
             }
         )
 
+    update_expr = (
+        "SET detection_source = :s, completeness_audit = :a, updated_at = :u, "
+        "device_model_key = :m, ocr_confirmed = :oc, ocr_influenced = :oi, "
+        "ocr_matched_hints = :oh, ocr_engine = :oe"
+    )
+    expr_vals = {
+        ":s": event.get("detection_source", "unknown"),
+        ":a": json.dumps(event.get("completeness_audit", {})),
+        ":u": utc_now_iso(),
+        ":m": event.get("device_model_key", "poweredge_r740"),
+        ":oc": bool(event.get("ocr_confirmed", False)),
+        ":oi": bool(event.get("ocr_influenced", False)),
+        ":oh": list(event.get("ocr_matched_hints") or []),
+        ":oe": event.get("ocr_engine") or "none",
+    }
+    if event.get("image_s3_key"):
+        update_expr += ", image_s3_key = :img"
+        expr_vals[":img"] = event["image_s3_key"]
+
     devices_table.update_item(
         Key={"device_id": device_id},
-        UpdateExpression=(
-            "SET detection_source = :s, completeness_audit = :a, updated_at = :u, "
-            "device_model_key = :m, ocr_confirmed = :oc, ocr_influenced = :oi, "
-            "ocr_matched_hints = :oh, ocr_engine = :oe"
-        ),
-        ExpressionAttributeValues={
-            ":s": event.get("detection_source", "unknown"),
-            ":a": json.dumps(event.get("completeness_audit", {})),
-            ":u": utc_now_iso(),
-            ":m": event.get("device_model_key", "poweredge_r740"),
-            ":oc": bool(event.get("ocr_confirmed", False)),
-            ":oi": bool(event.get("ocr_influenced", False)),
-            ":oh": list(event.get("ocr_matched_hints") or []),
-            ":oe": event.get("ocr_engine") or "none",
-        },
+        UpdateExpression=update_expr,
+        ExpressionAttributeValues=expr_vals,
     )
     log_pipeline_event(
         device_id,

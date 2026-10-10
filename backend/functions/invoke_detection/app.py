@@ -142,6 +142,7 @@ def handler(event, context):
     out = {
         **event,
         "device_model_key": device_model_key,
+        "image_s3_key": image_key,
         "detections": detections,
         "detection_source": detection_source,
         "completeness_audit": audit,
@@ -159,6 +160,7 @@ def handler(event, context):
         {
             "source": detection_source,
             "count": len(detections),
+            "image_s3_key": image_key,
             "ocr_confirmed": out["ocr_confirmed"],
             "ocr_matched_hints": out["ocr_matched_hints"],
             "ocr_engine": out["ocr_engine"],
