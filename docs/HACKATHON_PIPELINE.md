@@ -237,7 +237,7 @@ You do **not** add one MCP per service (Lambda, S3, DynamoDB…). One (or a few)
 
 | ID | Issue | Owner | Labels | Parallel? | Skip? | Done when |
 |----|-------|-------|--------|-----------|-------|-----------|
-| **I-4.1** | RVS ordering readable in plan timeline | Both | `backend` `data-catalog` | Yes | No | High-value parts prioritized sensibly |
+| **I-4.1** | RVS ordering readable in plan timeline | Both | `backend` `data-catalog` | Yes | No | ✅ High-value parts prioritized: PowerEdge R740 removal rules & fallback planner order parts by RVS descending (GPUs [RVS 132.30] and PSUs [RVS 26.89] scheduled immediately after top cover prerequisite). Enhanced plan model outputs `total_plan_rvs`, `step_rvs`, and `priority_tier`. Frontend `PlanTimeline` component displays RVS score badges, priority pills, and risk coding. Verified via unit tests (`tests/unit/test_planner_rvs.py`) and smoke test (`scripts/smoke_plan_rvs_timeline.py`). |
 | **I-4.2** | Completeness audit flags under-detection | You | `backend` `ml-model` | Yes | Soft-skip | Gaps array meaningful |
 | **I-4.3** | Deterministic diagnostics (same `component_id` → same results) | You | `backend` | Yes | No | Repeatable demo |
 | **I-4.4** | Impact panel numbers cite catalog factors; ranges shown | Both | `data-catalog` `docs` | Yes | No | Honest ranges, not fake precision |
