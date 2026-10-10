@@ -117,11 +117,13 @@ def handler(event, context):
         ocr = _ocr_model_hint(bucket, image_key, device_model_key, plate_text=plate_text)
         device_model_key = ocr.get("device_model_key") or device_model_key
         tried_sagemaker = False
+        raw_vision = None
         if endpoint and image_key:
             try:
                 vision = _sagemaker_detect(bucket, image_key, endpoint)
                 tried_sagemaker = True
                 if vision_detections_usable(vision, min_conf):
+                    raw_vision = vision
                     merged = merge_vision_with_catalog_gaps(
                         device_model_key, vision, min_confidence=min_conf
                     )
@@ -137,7 +139,11 @@ def handler(event, context):
             detections = catalog_assisted_detections(device_model_key)
             detection_source = "catalog-assisted" if not tried_sagemaker else detection_source
 
-    audit = completeness_audit(device_model_key, detections)
+    if raw_vision is not None:
+        audit = completeness_audit(device_model_key, raw_vision, tolerance=min_conf)
+        audit["remediation"] = "Augmented with catalog-assisted BOM items for recovery plan completeness"
+    else:
+        audit = completeness_audit(device_model_key, detections)
 
     out = {
         **event,

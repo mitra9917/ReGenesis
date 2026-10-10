@@ -116,10 +116,55 @@ export function JobResultsPage() {
           <h3>Detection</h3>
           <DetectionOverlay components={data.components || []} />
           {audit && (
-            <p style={{ marginTop: "0.75rem", fontSize: "0.9rem" }}>
-              Completeness score: <strong>{audit.score}</strong>
-              {audit.gaps?.length ? ` · ${audit.gaps.length} gap(s) flagged` : " · within tolerance"}
-            </p>
+            <div className={`audit-card ${audit.gaps?.length ? "audit-card-warn" : "audit-card-ok"}`}>
+              <div className="audit-header">
+                <div>
+                  <strong>BOM Completeness:</strong>{" "}
+                  <span style={{ fontWeight: 700, color: audit.score >= 0.8 ? "var(--accent)" : "var(--warn)" }}>
+                    {Math.round(audit.score * 100)}%
+                  </span>
+                  {audit.total_expected !== undefined && (
+                    <span style={{ color: "var(--muted)", marginLeft: "0.4rem", fontSize: "0.78rem" }}>
+                      ({audit.total_detected}/{audit.total_expected} parts)
+                    </span>
+                  )}
+                </div>
+                <span className={`pill ${audit.gaps?.length ? "pill-catalog" : "pill-vision"}`} style={{ fontSize: "0.7rem" }}>
+                  {audit.gaps?.length ? `${audit.gaps.length} Gap(s) Flagged` : "Within BOM Tolerance"}
+                </span>
+              </div>
+
+              {audit.gaps?.length > 0 && (
+                <div className="audit-gaps-list">
+                  {audit.gaps.map((g: any, gIdx: number) => {
+                    const sevClass =
+                      g.severity === "critical"
+                        ? "severity-critical"
+                        : g.severity === "high"
+                        ? "severity-high"
+                        : "severity-medium";
+                    return (
+                      <div key={gIdx} className="gap-item">
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+                          <span className={`pill ${sevClass}`} style={{ fontSize: "0.65rem", padding: "0.1rem 0.35rem" }}>
+                            {g.severity || "gap"}
+                          </span>
+                          <strong>{g.comp_type}</strong>
+                          <span style={{ color: "var(--muted)" }}>
+                            {g.detected}/{g.expected} detected ({g.missing} missing)
+                          </span>
+                        </div>
+                        {g.deficit_pct !== undefined && (
+                          <span style={{ fontSize: "0.75rem", color: "var(--warn)", fontWeight: 600 }}>
+                            -{g.deficit_pct}%
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           )}
         </div>
         <div className="card">
