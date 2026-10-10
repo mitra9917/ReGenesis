@@ -6,6 +6,54 @@ import { PlanTimeline } from "../components/PlanTimeline";
 import { PassportCard } from "../components/PassportCard";
 import { ImpactPanel } from "../components/ImpactPanel";
 
+const STAGE_ORDER = ["ingest", "detect", "parse", "plan", "test", "passport", "impact"];
+
+function PipelineEventsTable({ events }: { events: any[] }) {
+  if (!events || events.length === 0) {
+    return <p style={{ color: "var(--muted)", fontSize: "0.85rem" }}>No pipeline events recorded yet.</p>;
+  }
+  return (
+    <div className="impact-breakdown-wrap" style={{ marginTop: "0.5rem" }}>
+      <table className="impact-table" style={{ width: "100%", fontSize: "0.8rem" }}>
+        <thead>
+          <tr>
+            <th style={{ textAlign: "left", paddingRight: "1rem" }}>Time (UTC)</th>
+            <th style={{ textAlign: "left", paddingRight: "1rem" }}>Stage</th>
+            <th style={{ textAlign: "left", paddingRight: "1rem" }}>Status</th>
+            <th style={{ textAlign: "left" }}>Detail</th>
+          </tr>
+        </thead>
+        <tbody>
+          {events.map((ev: any) => {
+            const isOk = ev.status === "succeeded";
+            const isFail = ev.status === "failed";
+            const color = isOk ? "var(--accent)" : isFail ? "var(--danger)" : "#f59e0b";
+            const detail = typeof ev.detail === "object" ? ev.detail : {};
+            const detailStr = Object.entries(detail)
+              .slice(0, 4)
+              .map(([k, v]) => `${k}: ${v}`)
+              .join(" · ");
+            return (
+              <tr key={ev.event_id}>
+                <td style={{ fontFamily: "monospace", whiteSpace: "nowrap", paddingRight: "1rem", color: "var(--muted)" }}>
+                  {(ev.created_at || "").replace("T", " ").replace("Z", "")}
+                </td>
+                <td style={{ fontWeight: 600, paddingRight: "1rem", textTransform: "uppercase", fontSize: "0.7rem", letterSpacing: "0.05em" }}>
+                  {ev.event_type}
+                </td>
+                <td style={{ color, fontWeight: 700, paddingRight: "1rem" }}>
+                  {ev.status}
+                </td>
+                <td style={{ color: "var(--muted)" }}>{detailStr || "-"}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 export function JobResultsPage() {
   const { deviceId } = useParams<{ deviceId: string }>();
   const [data, setData] = useState<any>(null);
@@ -186,6 +234,28 @@ export function JobResultsPage() {
         {(data.passports || []).map((p: { passport_id: string }) => (
           <PassportCard key={p.passport_id} passportId={p.passport_id} />
         ))}
+      </div>
+
+      <div className="card">
+        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "0.5rem" }}>
+          <h3 style={{ margin: 0 }}>Pipeline Audit Log</h3>
+          <span className="pill pill-catalog" style={{ fontSize: "0.68rem" }}>
+            {(data.pipeline_events || []).length} events
+          </span>
+        </div>
+        <div style={{ fontSize: "0.78rem", color: "var(--muted)", marginBottom: "0.75rem" }}>
+          Stages: {STAGE_ORDER.map((s, i) => (
+            <span key={s}>
+              <span style={{ fontWeight: (data.pipeline_events || []).some((e: any) => e.event_type === s && e.status === "succeeded") ? 700 : 400,
+                color: (data.pipeline_events || []).some((e: any) => e.event_type === s && e.status === "failed") ? "var(--danger)" :
+                  (data.pipeline_events || []).some((e: any) => e.event_type === s && e.status === "succeeded") ? "var(--accent)" : "var(--muted)" }}>
+                {s}
+              </span>
+              {i < STAGE_ORDER.length - 1 && <span style={{ color: "var(--muted)", margin: "0 0.3rem" }}>&#8250;</span>}
+            </span>
+          ))}
+        </div>
+        <PipelineEventsTable events={data.pipeline_events || []} />
       </div>
     </>
   );

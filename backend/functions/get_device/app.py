@@ -78,6 +78,31 @@ def handler(event, context):
             else:
                 break
 
+        events_table_name = os.environ.get("PIPELINE_EVENTS_TABLE")
+        events = []
+        if events_table_name:
+            try:
+                events_table = ddb.Table(events_table_name)
+                e_params = {"KeyConditionExpression": Key("device_id").eq(device_id)}
+                while True:
+                    resp = events_table.query(**e_params)
+                    events.extend(resp.get("Items", []))
+                    if "LastEvaluatedKey" in resp:
+                        e_params["ExclusiveStartKey"] = resp["LastEvaluatedKey"]
+                    else:
+                        break
+
+                for ev in events:
+                    if ev.get("detail") and isinstance(ev["detail"], str):
+                        try:
+                            ev["detail"] = json.loads(ev["detail"])
+                        except json.JSONDecodeError:
+                            pass
+
+                events.sort(key=lambda x: str(x.get("created_at") or x.get("event_id") or ""))
+            except Exception:
+                pass
+
         for field in ("completeness_audit", "disassembly_plan", "impact_summary"):
             if device.get(field) and isinstance(device[field], str):
                 try:
@@ -113,6 +138,8 @@ def handler(event, context):
                 "device": device,
                 "components": comps,
                 "passports": passports,
+                "events": events,
+                "pipeline_events": events,
                 "plan": plan,
                 "disassembly_plan": plan,
                 "audit": audit,
@@ -121,5 +148,6 @@ def handler(event, context):
                 "impact_summary": impact,
             },
         )
+
     except Exception as exc:
         return _response(500, {"error": str(exc)})
