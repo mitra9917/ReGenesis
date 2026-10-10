@@ -22,4 +22,4 @@ Open passport card. Click **Verify** — KMS valid. “Second-Life Passport for 
 Impact panel: kg diverted, CO₂e avoided vs shred baseline.
 
 **2:30–3:00 — AWS scale**  
-Step Functions execution screenshot. “Serverless pipeline for every AWS re:Cycle-style hub.” End card: team + hackathon.
+Step Functions execution screenshot (`docs/screenshots/step_functions_recovery_flow_success.png`). “Serverless pipeline for every AWS re:Cycle-style hub.” End card: team + hackathon.

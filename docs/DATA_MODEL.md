@@ -12,6 +12,10 @@
 | `image_s3_key` | | Original image |
 | `execution_arn` | | Latest Step Functions run |
 | `detection_source` | | `vision`, `catalog-assisted`, `mock` |
+| `ocr_confirmed` | | `true` when plate OCR matched catalog `ocr_hints` |
+| `ocr_influenced` | | `true` when OCR switched `device_model_key` |
+| `ocr_matched_hints` | | List of plate tokens matched (e.g. `R740`) |
+| `ocr_engine` | | `tesseract`, `plate_text`, or `none` |
 | `completeness_audit` | | Map: expected vs detected per class |
 | `impact_summary` | | Aggregated kg, CO₂e |
 | `created_at` | | ISO8601 |

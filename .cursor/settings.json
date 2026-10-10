@@ -1,0 +1,13 @@
+{
+  "python.defaultInterpreterPath": "C:\\Program Files\\Python312\\python.exe",
+  "python.analysis.extraPaths": [
+    "${workspaceFolder}/shared/python",
+    "${workspaceFolder}/shared/layer/python",
+    "${workspaceFolder}/backend/functions/ingest",
+    "${workspaceFolder}/backend/functions/invoke_detection"
+  ],
+  "python.autoComplete.extraPaths": [
+    "${workspaceFolder}/shared/python",
+    "${workspaceFolder}/shared/layer/python"
+  ]
+}

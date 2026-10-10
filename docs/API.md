@@ -13,9 +13,12 @@ Create a device and start recovery pipeline.
   "device_model_key": "poweredge_r740",
   "image_base64": "<optional>",
   "content_type": "image/jpeg",
-  "serial_hint": "ABC123"
+  "serial_hint": "ABC123",
+  "plate_text": "<optional OCR override, e.g. Dell PowerEdge R740>"
 }
 ```
+
+With an image and `DETECTION_MODE=auto`, Lambda runs **Tesseract** on the photo to confirm/influence the model key. `plate_text` skips image OCR when provided.
 
 **Response `202`**
 

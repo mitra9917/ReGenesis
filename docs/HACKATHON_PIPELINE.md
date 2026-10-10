@@ -204,27 +204,27 @@ You do **not** add one MCP per service (Lambda, S3, DynamoDB…). One (or a few)
 
 | ID | Issue | Owner | Labels | Parallel? | Skip? | Done when |
 |----|-------|-------|--------|-----------|-------|-----------|
-| **I-3.1.1** | Test `DETECTION_MODE=auto` with real endpoint | You + Friend | `aws-integration` `ml-model` | After 2.3.4 | Soft-skip | `detection_source=vision` |
-| **I-3.1.2** | Force low-confidence / missing endpoint → catalog-assisted path | You | `aws-integration` `backend` `priority-p0` | Yes | No | Fallback badge + audit still work |
-| **I-3.1.3** | Exercise Textract model-plate path on a photo with readable text | You | `aws-integration` `priority-p1` | Yes | Soft-skip | OCR influences / confirms model key |
+| **I-3.1.1** | Test `DETECTION_MODE=auto` with real endpoint | You + Friend | `aws-integration` `ml-model` | After 2.3.4 | Soft-skip | `detection_source=vision` — code maps usable SageMaker (incl. hybrid mix) → `vision`; live proof: endpoint ON + `scripts/smoke_vision_auto.py` |
+| **I-3.1.2** | Force low-confidence / missing endpoint → catalog-assisted path | You | `aws-integration` `backend` `priority-p0` | Yes | No | ✅ Fallback badge + audit verified (`tests/unit/test_detection_catalog_fallback.py` + `scripts/smoke_catalog_fallback.py --e2e`) |
+| **I-3.1.3** | Exercise model-plate OCR on a photo with readable text | You | `aws-integration` `priority-p1` | Yes | Soft-skip | **Tesseract in Lambda** (no Textract). Fetch layer + redeploy, then `python scripts/smoke_plate_ocr.py --e2e` (or `--text-only-e2e`) |
 
 ### Phase 3.2 — Orchestration, storage, security
 
 | ID | Issue | Owner | Labels | Parallel? | Skip? | Done when |
 |----|-------|-------|--------|-----------|-------|-----------|
-| **I-3.2.1** | Walk Step Functions console for demo screenshots | You | `aws-integration` `demo-video` | Yes | No | 1 clean success screenshot |
-| **I-3.2.2** | Verify S3 prefixes: images / logs / passports | You | `aws-integration` | Yes | No | Keys match `docs/ARCHITECTURE.md` |
-| **I-3.2.3** | Tamper test: edit passport JSON → verify fails | You | `security-kms` `priority-p1` | Yes | Soft-skip | Strong judge moment |
-| **I-3.2.4** | SNS job-complete notification (email/subscription) | You | `aws-integration` `priority-p2` | Yes | Yes | Optional |
-| **I-3.2.5** | CloudWatch metrics: ComponentsRecovered, CO2eAvoidedKg, DetectionFallbackUsed | You | `aws-integration` `priority-p1` | Yes | Soft-skip | Metrics graph exists |
+| **I-3.2.1** | Walk Step Functions console for demo screenshots | You | `aws-integration` `demo-video` | Yes | No | ✅ Clean success screenshot captured (`docs/screenshots/step_functions_recovery_flow_success.png` for execution `rec-05e0a8f8-a9d640`) |
+| **I-3.2.2** | Verify S3 prefixes: images / logs / passports | You | `aws-integration` | Yes | No | ✅ Verified: 100% of keys match `docs/ARCHITECTURE.md` (`tests/unit/test_s3_key_prefixes.py` + `scripts/verify_s3_prefixes.py`) |
+| **I-3.2.3** | Tamper test: edit passport JSON → verify fails | You | `security-kms` `priority-p1` | Yes | Soft-skip | ✅ Verified: KMS detects tampering & returns valid: false (`tests/unit/test_passport_tamper.py` + `scripts/smoke_tamper_passport.py --e2e`) |
+| **I-3.2.4** | SNS job-complete notification (email/subscription) | You | `aws-integration` `priority-p2` | Yes | Yes | ✅ Topic active & Step Functions wired; optional subscription management via `scripts/sns_subscribe_notifications.py` |
+| **I-3.2.5** | CloudWatch metrics: ComponentsRecovered, CO2eAvoidedKg, DetectionFallbackUsed | You | `aws-integration` `priority-p1` | Yes | No | ✅ All 3 metrics active in `ReGenesis` namespace (ap-south-1); real data: ComponentsRecovered=243, CO2eAvoidedKg=7,786, DetectionFallbackUsed=5 over Oct 09–10. Dashboard screenshot: `docs/screenshots/cloudwatch_custom_metrics_dashboard.png`. Emitted by `ImpactSummaryFunction` via `put_metric_data`. |
 
 ### Phase 3.3 — API completeness
 
 | ID | Issue | Owner | Labels | Parallel? | Skip? | Done when |
 |----|-------|-------|--------|-----------|-------|-----------|
-| **I-3.3.1** | `GET /devices/{id}` returns plan + audit + impact | You | `backend` `priority-p0` | Yes | No | Matches UI needs |
-| **I-3.3.2** | `GET /jobs?execution_arn=` polling stable | You | `backend` `frontend` | Yes | No | UI status updates |
-| **I-3.3.3** | Image upload base64 path stores in S3 and is used by detection | You | `backend` `aws-integration` | Yes | Soft-skip if model-only demo | Image key non-empty |
+| **I-3.3.1** | `GET /devices/{id}` returns plan + audit + impact | You | `backend` `priority-p0` | Yes | No | ✅ Matches UI needs: returns full device snapshot including plan, audit, and impact (both root convenience keys and nested in `device`), components, and passports. Verified live on API Gateway (`https://roz4wu5br7.execute-api.ap-south-1.amazonaws.com/Prod/devices/{id}`) via `scripts/smoke_get_device.py` & unit tests (`tests/unit/test_get_device.py`). |
+| **I-3.3.2** | `GET /jobs?execution_arn=` polling stable | You | `backend` `frontend` | Yes | No | ✅ UI status updates: Lambda handles unquoted/encoded ARNs, catches 404 ExecutionDoesNotExist without 502 crash, exposes execution errors/causes, and includes CORS. Frontend polling stops on terminal states (`SUCCEEDED`/`FAILED`) and avoids unmounting on transient glitches. Verified live on API Gateway + Step Functions (`scripts/smoke_get_job_status.py`) & unit tests (`tests/unit/test_get_job_status.py`). |
+| **I-3.3.3** | Image upload base64 path stores in S3 and is used by detection | You | `backend` `aws-integration` | Yes | Soft-skip if model-only demo | ✅ Image key non-empty: `POST /devices` decodes base64 (including data URI prefixes), persists image to `s3://{bucket}/images/{device_id}/original.{ext}`, records `image_s3_key` in DynamoDB `DevicesTable`, and passes it to Step Functions & `InvokeDetectionFunction` for OCR & model detection. Verified live against AWS (`scripts/smoke_image_upload.py`) & unit tests (`tests/unit/test_image_upload_detection.py`). |
 
 **Milestone 3 exit criteria:** Service map in `docs/AWS_SERVICES.md` matches what judges can see in console.
 

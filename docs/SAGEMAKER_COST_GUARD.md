@@ -45,6 +45,13 @@ cd infrastructure/sam && source ../../scripts/sam-env.sh
 sam deploy --no-confirm-changeset --parameter-overrides 'Environment=dev DetectionMode=auto SageMakerEndpointName=regenesis-yolo-dev'
 ```
 
+Then prove I-3.1.1 (`detection_source=vision`) with an HDD/NIC/e-waste photo:
+
+```bash
+python scripts/smoke_vision_auto.py --image path/to/photo.jpg
+python scripts/smoke_vision_auto.py --image path/to/photo.jpg --e2e
+```
+
 ## Status check
 
 ```bash

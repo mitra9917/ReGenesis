@@ -31,25 +31,38 @@ def handler(event, context):
         device_id = str(uuid.uuid4())
         bucket = os.environ["ASSETS_BUCKET"]
         content_type = payload.get("content_type", "image/jpeg")
-        ext = "jpg" if "jpeg" in content_type else "png"
-        image_key = f"images/{device_id}/original.{ext}"
+        ext = "png" if "png" in content_type.lower() else "jpg"
+        b64_img = payload.get("image_base64") or payload.get("image")
+        has_image = bool(b64_img)
+        image_key = f"images/{device_id}/original.{ext}" if has_image else ""
 
-        if payload.get("image_base64"):
-            raw = base64.b64decode(payload["image_base64"])
+        if has_image:
+            if isinstance(b64_img, str) and "," in b64_img:
+                b64_img = b64_img.split(",", 1)[1]
+            raw = base64.b64decode(b64_img)
             s3.put_object(Bucket=bucket, Key=image_key, Body=raw, ContentType=content_type)
+
+        plate_text = (payload.get("plate_text") or payload.get("ocr_text") or "").strip()
 
         now = utc_now_iso()
         item = {
             "device_id": device_id,
             "device_model_key": device_model_key,
             "status": "RECOVERING",
-            "image_s3_key": image_key if payload.get("image_base64") else "",
+            "image_s3_key": image_key,
             "serial_hint": payload.get("serial_hint", ""),
             "created_at": now,
             "updated_at": now,
         }
+        if plate_text:
+            item["plate_text"] = plate_text
         _table().put_item(Item=item)
-        log_pipeline_event(device_id, "ingest", "succeeded", {"image_key": image_key})
+        log_pipeline_event(
+            device_id,
+            "ingest",
+            "succeeded",
+            {"image_key": image_key, "has_plate_text": bool(plate_text)},
+        )
 
         sf_input = {
             "device_id": device_id,
@@ -57,6 +70,8 @@ def handler(event, context):
             "image_s3_key": image_key,
             "bucket": bucket,
         }
+        if plate_text:
+            sf_input["plate_text"] = plate_text
         execution = sfn.start_execution(
             stateMachineArn=os.environ["RECOVERY_STATE_MACHINE_ARN"],
             name=f"rec-{device_id[:8]}-{uuid.uuid4().hex[:6]}",
@@ -74,6 +89,7 @@ def handler(event, context):
                 "device_id": device_id,
                 "execution_arn": execution["executionArn"],
                 "status": "RECOVERY_STARTED",
+                "image_s3_key": image_key,
             },
         )
     except Exception as exc:
