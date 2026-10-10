@@ -1,5 +1,38 @@
-/** In dev, default `/api` uses Vite proxy (avoids browser CORS). In prod, set full API Gateway URL. */
-const API_URL = (import.meta.env.VITE_API_URL || "/api").replace(/\/$/, "");
+export const API_URL = (import.meta.env.VITE_API_URL || "/api").replace(/\/$/, "");
+
+export async function checkBackendHealth(): Promise<{
+  online: boolean;
+  apiUrl: string;
+  isAwsDirect: boolean;
+  latencyMs: number;
+}> {
+  const start = performance.now();
+  const isAwsDirect = Boolean(import.meta.env.VITE_API_URL && !import.meta.env.VITE_API_URL.startsWith("/"));
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 2000);
+    // Ping with OPTIONS or fast probe
+    const res = await fetch(`${API_URL}/devices`, {
+      method: "OPTIONS",
+      signal: controller.signal,
+    }).catch(() => null);
+    clearTimeout(timeoutId);
+    const latencyMs = Math.round(performance.now() - start);
+    return {
+      online: Boolean(res && (res.ok || res.status === 200 || res.status === 204 || res.status === 403 || res.status === 405)),
+      apiUrl: API_URL,
+      isAwsDirect,
+      latencyMs,
+    };
+  } catch {
+    return {
+      online: false,
+      apiUrl: API_URL,
+      isAwsDirect,
+      latencyMs: Math.round(performance.now() - start),
+    };
+  }
+}
 
 async function apiFetch(path: string, init?: RequestInit) {
   try {
