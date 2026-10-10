@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AWS Step Functions - Execution rec-05e0a8f8-a9d640</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+    body {
+      background-color: #0f172a;
+      color: #eaeded;
+      font-size: 13px;
+      overflow-x: hidden;
+    }
+    /* Top AWS Nav */
+    .aws-nav {
+      background-color: #161e2e;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      border-bottom: 1px solid #232f3e;
+      color: #d1d5db;
+    }
+    .nav-left {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+    .aws-logo {
+      font-weight: 800;
+      font-size: 16px;
+      color: #ff9900;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .aws-services-btn {
+      background: #232f3e;
+      border: 1px solid #374151;
+      color: #fff;
+      padding: 5px 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .search-bar {
+      background: #0f172a;
+      border: 1px solid #374151;
+      border-radius: 4px;
+      padding: 5px 14px;
+      color: #9ca3af;
+      width: 380px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 12px;
+    }
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      font-size: 12px;
+    }
+    .region-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: #e5e7eb;
+      font-weight: 500;
+      background: #1f2937;
+      padding: 4px 10px;
+      border-radius: 4px;
+      border: 1px solid #374151;
+    }
+    .user-badge {
+      color: #93c5fd;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Subheader / Breadcrumbs */
+    .subnav {
+      background: #1e293b;
+      padding: 12px 24px;
+      border-bottom: 1px solid #334155;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .breadcrumb {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #94a3b8;
+      font-size: 12px;
+    }
+    .breadcrumb span.sep { color: #64748b; }
+    .breadcrumb a { color: #60a5fa; text-decoration: none; }
+    .breadcrumb .active { color: #f1f5f9; font-weight: 600; }
+
+    /* Page Header */
+    .page-header {
+      background: #1e293b;
+      padding: 16px 24px 20px;
+      border-bottom: 1px solid #334155;
+    }
+    .title-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    .title-area {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .page-title {
+      font-size: 22px;
+      font-weight: 700;
+      color: #ffffff;
+      letter-spacing: -0.3px;
+    }
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #064e3b;
+      color: #34d399;
+      border: 1px solid #059669;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      background: #10b981;
+      border-radius: 50%;
+      box-shadow: 0 0 6px #10b981;
+    }
+    .actions-bar {
+      display: flex;
+      gap: 10px;
+    }
+    .btn {
+      padding: 6px 14px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid transparent;
+    }
+    .btn-secondary {
+      background: #334155;
+      color: #e2e8f0;
+      border-color: #475569;
+    }
+    .btn-primary {
+      background: #ec7211;
+      color: #ffffff;
+    }
+
+    /* Meta Details Grid */
+    .details-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 16px;
+      background: #0f172a;
+      padding: 14px 18px;
+      border-radius: 6px;
+      border: 1px solid #334155;
+    }
+    .meta-item label {
+      display: block;
+      color: #94a3b8;
+      font-size: 11px;
+      text-transform: uppercase;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+    .meta-item value {
+      display: block;
+      color: #f8fafc;
+      font-size: 13px;
+      font-weight: 500;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    /* Main Content Area */
+    .main-layout {
+      display: grid;
+      grid-template-columns: 1fr 440px;
+      height: calc(100vh - 210px);
+      min-height: 580px;
+      background: #090d16;
+    }
+
+    /* Graph View */
+    .graph-pane {
+      border-right: 1px solid #1e293b;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      background: radial-gradient(circle at 50% 50%, #111827 0%, #090d16 100%);
+    }
+    .pane-toolbar {
+      padding: 10px 16px;
+      background: #111827;
+      border-bottom: 1px solid #1f2937;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .pane-title {
+      font-weight: 600;
+      color: #cbd5e1;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .legend {
+      display: flex;
+      gap: 14px;
+      font-size: 11px;
+      color: #94a3b8;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .legend-indicator {
+      width: 9px;
+      height: 9px;
+      border-radius: 2px;
+    }
+    .ind-success { background: #10b981; }
+    .ind-running { background: #3b82f6; }
+    .ind-failed { background: #ef4444; }
+
+    /* Graph Diagram */
+    .diagram-canvas {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      overflow-y: auto;
+    }
+
+    .node-flow {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+      max-width: 480px;
+    }
+
+    .flow-connector {
+      width: 2px;
+      height: 20px;
+      background: #10b981;
+      position: relative;
+    }
+    .flow-connector::after {
+      content: "";
+      position: absolute;
+      bottom: -4px;
+      left: -3px;
+      width: 0;
+      height: 0;
+      border-left: 4px solid transparent;
+      border-right: 4px solid transparent;
+      border-top: 5px solid #10b981;
+    }
+
+    .flow-pill-terminal {
+      background: #1f2937;
+      border: 1px solid #374151;
+      color: #9ca3af;
+      padding: 4px 18px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    .state-node {
+      width: 320px;
+      background: #132b21;
+      border: 2px solid #10b981;
+      border-radius: 8px;
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15);
+      position: relative;
+      transition: all 0.2s;
+    }
+    .state-node.selected {
+      border-color: #34d399;
+      box-shadow: 0 0 16px rgba(52, 211, 153, 0.4);
+      background: #17382a;
+    }
+    .state-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .node-icon {
+      width: 26px;
+      height: 26px;
+      border-radius: 6px;
+      background: #064e3b;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #34d399;
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .node-text {
+      display: flex;
+      flex-direction: column;
+    }
+    .node-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: #ffffff;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+    .node-type {
+      font-size: 10px;
+      color: #6ee7b7;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .node-badge {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      color: #34d399;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    /* Inspector Sidebar */
+    .inspector-pane {
+      background: #0f172a;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+    .inspector-tabs {
+      display: flex;
+      background: #1e293b;
+      border-bottom: 1px solid #334155;
+    }
+    .tab {
+      padding: 10px 16px;
+      color: #94a3b8;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+    }
+    .tab.active {
+      color: #38bdf8;
+      border-bottom-color: #38bdf8;
+      background: #0f172a;
+    }
+    .inspector-content {
+      padding: 16px;
+      flex: 1;
+    }
+    .inspector-card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      padding: 14px;
+      margin-bottom: 14px;
+    }
+    .card-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 10px;
+    }
+    .json-code {
+      background: #090d16;
+      border: 1px solid #1e293b;
+      border-radius: 4px;
+      padding: 10px;
+      color: #38bdf8;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 11px;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 6px 0;
+      border-bottom: 1px solid #334155;
+      font-size: 12px;
+    }
+    .info-row:last-child { border-bottom: none; }
+    .info-label { color: #94a3b8; }
+    .info-val { color: #f1f5f9; font-weight: 500; font-family: ui-monospace, monospace; }
+  </style>
+</head>
+<body>
+
+  <!-- AWS Global Nav -->
+  <div class="aws-nav">
+    <div class="nav-left">
+      <div class="aws-logo">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="#ff9900"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+        <span>AWS</span>
+      </div>
+      <div class="aws-services-btn">
+        <span>Services</span>
+      </div>
+      <div class="search-bar">
+        <span>Step Functions &gt; Executions</span>
+        <span style="opacity: 0.5;">[Alt+S]</span>
+      </div>
+    </div>
+    <div class="nav-right">
+      <div class="region-badge">
+        <span style="display:inline-block; width:6px; height:6px; background:#10b981; border-radius:50%;"></span>
+        <span>Asia Pacific (Mumbai) ap-south-1</span>
+      </div>
+      <div class="user-badge">
+        <span>regenesis-ml @ 620694778016</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Breadcrumb -->
+  <div class="subnav">
+    <div class="breadcrumb">
+      <a href="#">AWS Step Functions</a>
+      <span class="sep">/</span>
+      <a href="#">State machines</a>
+      <span class="sep">/</span>
+      <a href="#">ReGenesisRecoveryFlow-dev</a>
+      <span class="sep">/</span>
+      <span class="active">rec-05e0a8f8-a9d640</span>
+    </div>
+  </div>
+
+  <!-- Page Header -->
+  <div class="page-header">
+    <div class="title-row">
+      <div class="title-area">
+        <h1 class="page-title">rec-05e0a8f8-a9d640</h1>
+        <div class="status-badge">
+          <span class="status-dot"></span>
+          <span>Succeeded</span>
+        </div>
+      </div>
+      <div class="actions-bar">
+        <button class="btn btn-secondary">New execution</button>
+        <button class="btn btn-secondary">Redrive</button>
+        <button class="btn btn-secondary">Edit state machine</button>
+      </div>
+    </div>
+
+    <!-- Execution Details Grid -->
+    <div class="details-grid">
+      <div class="meta-item">
+        <label>State machine</label>
+        <value style="color: #60a5fa;">ReGenesisRecoveryFlow-dev</value>
+      </div>
+      <div class="meta-item">
+        <label>Status</label>
+        <value style="color: #34d399;">Succeeded</value>
+      </div>
+      <div class="meta-item">
+        <label>Started</label>
+        <value>23:00:28.870 IST</value>
+      </div>
+      <div class="meta-item">
+        <label>Ended</label>
+        <value>23:00:36.430 IST</value>
+      </div>
+      <div class="meta-item">
+        <label>Duration</label>
+        <value style="color: #fbbf24;">7.560 seconds</value>
+      </div>
+      <div class="meta-item">
+        <label>Target Device</label>
+        <value style="color: #a78bfa;">Dell R740</value>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Split Layout -->
+  <div class="main-layout">
+    
+    <!-- Graph pane -->
+    <div class="graph-pane">
+      <div class="pane-toolbar">
+        <div class="pane-title">
+          <span>Execution Graph View</span>
+          <span style="font-size: 11px; color: #10b981; background: #064e3b; padding: 2px 8px; border-radius: 4px; font-weight: 600;">7 of 7 steps succeeded</span>
+        </div>
+        <div class="legend">
+          <div class="legend-item"><span class="legend-indicator ind-success"></span> Succeeded</div>
+          <div class="legend-item"><span class="legend-indicator ind-running"></span> In progress</div>
+          <div class="legend-item"><span class="legend-indicator ind-failed"></span> Failed</div>
+        </div>
+      </div>
+
+      <div class="diagram-canvas">
+        <div class="node-flow">
+          
+          <div class="flow-pill-terminal">Start</div>
+          <div class="flow-connector"></div>
+
+          <!-- Step 1 -->
+          <div class="state-node">
+            <div class="state-left">
+              <div class="node-icon">λ</div>
+              <div class="node-text">
+                <span class="node-name">InvokeDetection</span>
+                <span class="node-type">Lambda Task • Vision / Fallback</span>
+              </div>
+            </div>
+            <div class="node-badge">✓ 1.82s</div>
+          </div>
+          <div class="flow-connector"></div>
+
+          <!-- Step 2 -->
+          <div class="state-node">
+            <div class="state-left">
+              <div class="node-icon">λ</div>
+              <div class="node-text">
+                <span class="node-name">ParseDetections</span>
+                <span class="node-type">Lambda Task • DynamoDB Sync</span>
+              </div>
+            </div>
+            <div class="node-badge">✓ 0.41s</div>
+          </div>
+          <div class="flow-connector"></div>
+
+          <!-- Step 3 -->
+          <div class="state-node">
+            <div class="state-left">
+              <div class="node-icon">λ</div>
+              <div class="node-text">
+                <span class="node-name">PlanDisassembly</span>
+                <span class="node-type">Lambda Task • RVS Ranking</span>
+              </div>
+            </div>
+            <div class="node-badge">✓ 0.88s</div>
+          </div>
+          <div class="flow-connector"></div>
+
+          <!-- Step 4 -->
+          <div class="state-node">
+            <div class="state-left">
+              <div class="node-icon">λ</div>
+              <div class="node-text">
+                <span class="node-name">RunDiagnostics</span>
+                <span class="node-type">Lambda Task • QA Verification</span>
+              </div>
+            </div>
+            <div class="node-badge">✓ 1.25s</div>
+          </div>
+          <div class="flow-connector"></div>
+
+          <!-- Step 5 -->
+          <div class="state-node selected">
+            <div class="state-left">
+              <div class="node-icon">λ</div>
+              <div class="node-text">
+                <span class="node-name">GeneratePassports</span>
+                <span class="node-type">Lambda Task • KMS Signing</span>
+              </div>
+            </div>
+            <div class="node-badge">✓ 1.10s</div>
+          </div>
+          <div class="flow-connector"></div>
+
+          <!-- Step 6 -->
+          <div class="state-node">
+            <div class="state-left">
+              <div class="node-icon">λ</div>
+              <div class="node-text">
+                <span class="node-name">ImpactSummary</span>
+                <span class="node-type">Lambda Task • CO₂e / Waste diverted</span>
+              </div>
+            </div>
+            <div class="node-badge">✓ 0.65s</div>
+          </div>
+          <div class="flow-connector"></div>
+
+          <!-- Step 7 -->
+          <div class="state-node">
+            <div class="state-left">
+              <div class="node-icon" style="background:#701a75; color:#f472b6;">📢</div>
+              <div class="node-text">
+                <span class="node-name">NotifyComplete</span>
+                <span class="node-type">SNS Topic Publish</span>
+              </div>
+            </div>
+            <div class="node-badge">✓ 0.05s</div>
+          </div>
+          <div class="flow-connector"></div>
+
+          <div class="flow-pill-terminal">End</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Inspector pane -->
+    <div class="inspector-pane">
+      <div class="inspector-tabs">
+        <div class="tab active">Step details</div>
+        <div class="tab">Execution input</div>
+        <div class="tab">Execution output</div>
+      </div>
+
+      <div class="inspector-content">
+        <div class="inspector-card">
+          <div class="card-title">Selected State: GeneratePassports</div>
+          <div class="info-row">
+            <span class="info-label">Step type</span>
+            <span class="info-val">Task (AWS Lambda)</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Status</span>
+            <span class="info-val" style="color: #34d399;">Succeeded</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">KMS Key</span>
+            <span class="info-val">regenesis-dev-key</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Passports Minted</span>
+            <span class="info-val" style="color:#60a5fa;">7 Certified Parts</span>
+          </div>
+        </div>
+
+        <div class="inspector-card">
+          <div class="card-title">Execution Input</div>
+          <div class="json-code">{
+  "device_id": "05e0a8f8-baa4-4473-be15-fcf9b9eb6b98",
+  "device_model_key": "poweredge_r740",
+  "bucket": "regenesis-dev-assetsbucket-xp9zjtzuwy50",
+  "image_s3_key": "images/05e0a8f8.../original.jpg"
+}</div>
+        </div>
+
+        <div class="inspector-card">
+          <div class="card-title">SNS Recovery Notification Output</div>
+          <div class="json-code">{
+  "TopicArn": "arn:aws:sns:ap-south-1:...:RecoveryCompleteTopic",
+  "MessageId": "b7ee118e-31e6-54a2-89e7-72ca499ab3a8",
+  "Status": 200,
+  "RecoveryResult": "SUCCEEDED"
+}</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

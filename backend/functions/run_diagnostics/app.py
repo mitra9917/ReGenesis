@@ -28,12 +28,14 @@ def handler(event, context):
         )
         components_table.update_item(
             Key={"device_id": device_id, "component_id": comp["component_id"]},
-            UpdateExpression="SET #status = :s, test_results = :t, test_log_s3_key = :k",
+            UpdateExpression="SET #status = :s, test_results = :t, test_log_s3_key = :k, health_score = :h, diagnostics_grade = :g",
             ExpressionAttributeNames={"#status": "status"},
             ExpressionAttributeValues={
                 ":s": status,
                 ":t": json.dumps(result["test_results"]),
                 ":k": log_key,
+                ":h": str(result["health_score"]),
+                ":g": result.get("diagnostics_grade", "Grade B"),
             },
         )
         tested.append({**comp, **result, "status": status})

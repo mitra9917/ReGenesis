@@ -18,6 +18,12 @@ dist/
 samconfig.toml
 packaged.yaml
 
+# Tesseract Lambda layer binaries (fetch with scripts/fetch_tesseract_layer.py)
+shared/tesseract_layer/content/
+shared/tesseract_layer/extracted/
+shared/tesseract_layer/*.zip
+scripts/.smoke-fixtures/
+
 # Secrets and local env
 .env
 .env.*

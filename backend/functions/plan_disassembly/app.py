@@ -21,10 +21,12 @@ def handler(event, context):
         for comp in step["components"]:
             components_table.update_item(
                 Key={"device_id": device_id, "component_id": comp["component_id"]},
-                UpdateExpression="SET extraction_step = :e, planned_action = :a",
+                UpdateExpression="SET extraction_step = :e, planned_action = :a, rvs = :r, priority_tier = :pt",
                 ExpressionAttributeValues={
                     ":e": comp["extraction_step"],
                     ":a": comp.get("action", step["action"]),
+                    ":r": str(comp["rvs"]),
+                    ":pt": comp.get("priority_tier", "Standard"),
                 },
             )
 
@@ -34,6 +36,15 @@ def handler(event, context):
         UpdateExpression="SET disassembly_plan = :p, updated_at = :u",
         ExpressionAttributeValues={":p": json.dumps(plan), ":u": utc_now_iso()},
     )
-    log_pipeline_event(device_id, "plan", "succeeded", {"steps": len(plan["steps"])})
+    log_pipeline_event(
+        device_id,
+        "plan",
+        "succeeded",
+        {
+            "steps": len(plan["steps"]),
+            "total_plan_rvs": plan.get("total_plan_rvs", 0),
+            "highest_rvs_component": plan.get("highest_rvs_component", ""),
+        },
+    )
 
     return {**event, "disassembly_plan": plan}

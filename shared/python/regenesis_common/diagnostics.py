@@ -5,17 +5,24 @@ from typing import Any, Dict
 from regenesis_common.catalog import load_catalog
 
 
-def _rng_for_component(component_id: str) -> random.Random:
-    seed = int(hashlib.sha256(component_id.encode()).hexdigest()[:8], 16)
-    return random.Random(seed)
+def _rng_for_component(component_id: str) -> tuple[random.Random, int]:
+    clean_id = str(component_id or "comp-default").strip()
+    seed = int(hashlib.sha256(clean_id.encode("utf-8")).hexdigest()[:8], 16)
+    return random.Random(seed), seed
 
 
 def run_component_diagnostics(component: Dict[str, Any]) -> Dict[str, Any]:
+    """Execute deterministic simulated diagnostics seeded strictly by component_id.
+
+    Guarantee: Same component_id + comp_type ALWAYS produces the exact same
+    test_results, health_score, status, and diagnostics_grade across all environments.
+    """
     catalog = load_catalog()
     specs = catalog["component_specs"]
+    comp_id = str(component.get("component_id") or "comp-default").strip()
     comp_type = component.get("comp_type", "RAM")
     profile = specs.get(comp_type, {}).get("test_profile", "memory_pattern")
-    rng = _rng_for_component(component["component_id"])
+    rng, seed = _rng_for_component(comp_id)
 
     health = component.get("health_score")
     if health is None:
@@ -47,14 +54,25 @@ def run_component_diagnostics(component: Dict[str, Any]) -> Dict[str, Any]:
             "EfficiencyPct": round(rng.uniform(88, 94) if passed else rng.uniform(60, 75), 1),
         }
     elif profile == "loopback":
-        tests = {"Loopback": "Pass" if passed else "Fail", "PacketLossPct": 0 if passed else rng.uniform(1, 5)}
+        tests = {
+            "Loopback": "Pass" if passed else "Fail",
+            "PacketLossPct": 0 if passed else rng.uniform(1, 5),
+        }
     elif profile == "capacity_check":
         tests = {
             "CapacityPct": round(rng.uniform(75, 95) if passed else rng.uniform(40, 60), 1),
             "CycleCount": rng.randint(200, 800),
         }
     elif profile == "rpm_stability":
-        tests = {"RPMStability": "Pass" if passed else "Fail", "MaxRPM": rng.randint(3000, 6000)}
+        tests = {
+            "RPMStability": "Pass" if passed else "Fail",
+            "MaxRPM": rng.randint(3000, 6000),
+        }
+    elif profile == "signal_test":
+        tests = {
+            "SignalStrengthDbm": round(rng.uniform(-45, -60) if passed else rng.uniform(-75, -90), 1),
+            "ThroughputMbps": round(rng.uniform(650, 900) if passed else rng.uniform(50, 200), 1),
+        }
     else:
         tests = {
             "MemoryTest": "Pass" if passed else "Fail",
@@ -63,10 +81,24 @@ def run_component_diagnostics(component: Dict[str, Any]) -> Dict[str, Any]:
         }
 
     status = "qualified_for_reuse" if passed else "failed"
+
+    if status == "qualified_for_reuse":
+        if health >= 0.85:
+            grade = "Grade A (Prime)"
+        elif health >= 0.65:
+            grade = "Grade B (Standard)"
+        else:
+            grade = "Grade C (Functional)"
+    else:
+        grade = "Grade F (Recycle Only)"
+
     return {
-        "component_id": component["component_id"],
+        "component_id": comp_id,
         "comp_type": comp_type,
         "status": status,
         "test_results": tests,
         "health_score": round(health, 3),
+        "test_profile": profile,
+        "diagnostics_grade": grade,
+        "deterministic_seed": hex(seed)[2:],
     }

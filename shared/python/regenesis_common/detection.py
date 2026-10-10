@@ -1,7 +1,7 @@
 import uuid
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
-from regenesis_common.catalog import get_device_spec
+from regenesis_common.catalog import get_device_spec, load_catalog
 
 
 def completeness_audit(
@@ -9,6 +9,11 @@ def completeness_audit(
     detections: List[Dict[str, Any]],
     tolerance: float = 0.5,
 ) -> Dict[str, Any]:
+    """Audit detected components against expected device BOM.
+
+    Flags under-detections with meaningful gap records including missing count,
+    percentage deficit, severity tier, human-readable reason, and remediation.
+    """
     expected = get_device_spec(device_model_key)["expected_components"]
     detected_counts: Dict[str, int] = {}
     for d in detections:
@@ -18,27 +23,68 @@ def completeness_audit(
 
     gaps: List[Dict[str, Any]] = []
     score_parts: List[float] = []
+    under_detected_classes: List[str] = []
+    total_expected = sum(expected.values())
+    total_detected = sum(min(detected_counts.get(k, 0), v) for k, v in expected.items())
+
     for comp_type, exp_count in expected.items():
         det = detected_counts.get(comp_type, 0)
         ratio = min(det, exp_count) / exp_count if exp_count else 1.0
         score_parts.append(ratio)
-        if det < exp_count * tolerance:
+
+        if det < exp_count:
+            missing = exp_count - det
+            deficit_pct = round((missing / exp_count) * 100, 1)
+            under_detected_classes.append(comp_type)
+
+            # Determine severity based on absence and value
+            if det == 0:
+                severity = "critical" if comp_type in ("GPU", "CPU") else "high"
+            elif det < exp_count * tolerance:
+                severity = "high"
+            else:
+                severity = "medium"
+
             gaps.append(
                 {
                     "comp_type": comp_type,
                     "expected": exp_count,
                     "detected": det,
-                    "severity": "high" if det == 0 else "medium",
+                    "missing": missing,
+                    "deficit_pct": deficit_pct,
+                    "severity": severity,
+                    "reason": f"Under-detected: {missing} of {exp_count} {comp_type} missing ({deficit_pct}% deficit)",
+                    "remediation": f"Injected {missing} catalog-assisted {comp_type} item(s) to complete recovery plan",
                 }
             )
 
     overall = sum(score_parts) / len(score_parts) if score_parts else 0.0
+
+    # Surplus detections (detections exceeding BOM count or outside BOM)
+    surplus: List[Dict[str, Any]] = []
+    for comp_type, count in detected_counts.items():
+        exp = expected.get(comp_type, 0)
+        if count > exp:
+            surplus.append(
+                {
+                    "comp_type": comp_type,
+                    "detected": count,
+                    "expected": exp,
+                    "extra": count - exp,
+                }
+            )
+
     return {
         "expected": expected,
         "detected": detected_counts,
         "gaps": gaps,
         "score": round(overall, 3),
         "within_tolerance": len(gaps) == 0,
+        "total_expected": total_expected,
+        "total_detected": total_detected,
+        "total_missing": max(0, total_expected - total_detected),
+        "under_detected_classes": under_detected_classes,
+        "surplus": surplus,
     }
 
 
@@ -46,8 +92,11 @@ def catalog_assisted_detections(
     device_model_key: str,
     image_width: int = 1,
     image_height: int = 1,
+    device_id: Optional[str] = None,
 ) -> List[Dict[str, Any]]:
-    """Generate normalized placeholder boxes arranged in a grid from BOM."""
+    """Generate normalized placeholder boxes arranged in a grid from BOM.
+    When device_id is provided, detection_id is generated deterministically.
+    """
     spec = get_device_spec(device_model_key)
     expected = spec["expected_components"]
     detections: List[Dict[str, Any]] = []
@@ -59,9 +108,13 @@ def catalog_assisted_detections(
             w, h = 0.18, 0.12
             x = 0.05 + col * 0.22
             y = 0.05 + row * 0.15
+            if device_id:
+                det_id = str(uuid.uuid5(uuid.NAMESPACE_DNS, f"{device_id}:{comp_type}:{idx}"))
+            else:
+                det_id = str(uuid.uuid4())
             detections.append(
                 {
-                    "detection_id": str(uuid.uuid4()),
+                    "detection_id": det_id,
                     "class": comp_type,
                     "comp_type": comp_type,
                     "confidence": 0.75,
@@ -101,6 +154,7 @@ def merge_vision_with_catalog_gaps(
     device_model_key: str,
     vision_detections: List[Dict[str, Any]],
     min_confidence: float = 0.45,
+    device_id: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Keep confident vision boxes; catalog only fills missing BOM type counts.
 
@@ -127,9 +181,13 @@ def merge_vision_with_catalog_gaps(
         for _ in range(need):
             row = idx // 4
             col = idx % 4
+            if device_id:
+                filler_id = str(uuid.uuid5(uuid.NAMESPACE_DNS, f"{device_id}:filler:{comp_type}:{idx}"))
+            else:
+                filler_id = str(uuid.uuid4())
             fillers.append(
                 {
-                    "detection_id": str(uuid.uuid4()),
+                    "detection_id": filler_id,
                     "class": comp_type,
                     "comp_type": comp_type,
                     "confidence": 0.75,
@@ -149,6 +207,65 @@ def merge_vision_with_catalog_gaps(
         merged = catalog_assisted_detections(device_model_key)
 
     return {"detections": merged, "detection_source": source}
+
+
+def api_detection_source(merge_source: str) -> str:
+    """Map merge mix labels to the device/API `detection_source`.
+
+    Partial YOLO coverage (HDD/NIC/Other today) still used SageMaker, so the
+    stored source is `vision`. Per-box `source` keeps catalog fillers visible.
+    """
+    if merge_source in {"vision", "hybrid"}:
+        return "vision"
+    return merge_source
+
+
+def match_device_from_ocr_text(
+    ocr_text: str,
+    preferred_key: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Match catalog `ocr_hints` against Textract (or any) OCR text.
+
+    Confirms the preferred model when its hints appear; otherwise may switch
+    to another catalog device whose plate text matches (influence).
+    """
+    text = (ocr_text or "").upper()
+    devices = load_catalog()["devices"]
+
+    scores: Dict[str, Dict[str, Any]] = {}
+    for key, spec in devices.items():
+        hints = list(spec.get("ocr_hints") or [])
+        matched = [h for h in hints if h and h.upper() in text]
+        if not matched:
+            continue
+        # Prefer more hits and longer (more specific) tokens like R740 over Dell.
+        score = len(matched) * 10 + sum(len(h) for h in matched)
+        scores[key] = {"matched_hints": matched, "score": score}
+
+    if preferred_key and preferred_key in scores:
+        return {
+            "device_model_key": preferred_key,
+            "confirmed": True,
+            "influenced": False,
+            "matched_hints": scores[preferred_key]["matched_hints"],
+        }
+
+    if scores:
+        best_key = max(scores.items(), key=lambda item: item[1]["score"])[0]
+        influenced = bool(preferred_key) and best_key != preferred_key
+        return {
+            "device_model_key": best_key,
+            "confirmed": True,
+            "influenced": influenced,
+            "matched_hints": scores[best_key]["matched_hints"],
+        }
+
+    return {
+        "device_model_key": preferred_key or "",
+        "confirmed": False,
+        "influenced": False,
+        "matched_hints": [],
+    }
 
 
 # Back-compat alias (older callers / docs)

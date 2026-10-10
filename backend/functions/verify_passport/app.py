@@ -4,6 +4,8 @@ import os
 
 import boto3
 
+from botocore.exceptions import ClientError
+
 from regenesis_common.passport import canonical_passport_bytes, strip_signature
 
 s3 = boto3.client("s3")
@@ -34,22 +36,35 @@ def handler(event, context):
     sig = base64.b64decode(passport.get("signature", ""))
     message = canonical_passport_bytes(passport)
 
-    verify = kms.verify(
-        KeyId=os.environ["PASSPORT_KMS_KEY_ID"],
-        Message=message,
-        MessageType="RAW",
-        Signature=sig,
-        SigningAlgorithm="RSASSA_PSS_SHA_256",
-    )
+    is_valid = False
+    verification_error = None
+    try:
+        verify = kms.verify(
+            KeyId=os.environ["PASSPORT_KMS_KEY_ID"],
+            Message=message,
+            MessageType="RAW",
+            Signature=sig,
+            SigningAlgorithm="RSASSA_PSS_SHA_256",
+        )
+        is_valid = bool(verify.get("SignatureValid", False))
+    except ClientError as e:
+        code = e.response.get("Error", {}).get("Code", "")
+        if code in ("KMSInvalidSignatureException", "InvalidSignatureException"):
+            is_valid = False
+            verification_error = "Signature verification failed: document content has been tampered with or signature does not match."
+        else:
+            raise
 
-    return _response(
-        200,
-        {
-            "passport_id": passport_id,
-            "valid": verify.get("SignatureValid", False),
-            "algorithm": "RSASSA_PSS_SHA_256",
-            "status": passport.get("status"),
-            "component_type": passport.get("component_type"),
-            "payload_preview": strip_signature(passport),
-        },
-    )
+    resp_body = {
+        "passport_id": passport_id,
+        "valid": is_valid,
+        "algorithm": "RSASSA_PSS_SHA_256",
+        "status": passport.get("status"),
+        "component_type": passport.get("component_type"),
+        "payload_preview": strip_signature(passport),
+    }
+    if verification_error:
+        resp_body["tamper_detected"] = True
+        resp_body["reason"] = verification_error
+
+    return _response(200, resp_body)
