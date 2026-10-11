@@ -21,7 +21,12 @@ type Props = {
 };
 
 export function PassportCard({ passport, deviceSerial }: Props) {
-  const [result, setResult] = useState<{ valid?: boolean; error?: string } | null>(null);
+  const [result, setResult] = useState<{
+    valid?: boolean;
+    error?: string;
+    demo?: boolean;
+    message?: string;
+  } | null>(null);
   const [loading, setLoading] = useState(false);
   const [copiedId, setCopiedId] = useState(false);
 
@@ -108,7 +113,9 @@ export function PassportCard({ passport, deviceSerial }: Props) {
           style={{ color: result.valid ? "var(--accent)" : "var(--danger)" }}
         >
           {result.valid
-            ? "✓ Signature valid (AWS KMS)"
+            ? result.demo
+              ? "✓ Demo passport valid (sample data — not in AWS yet)"
+              : "✓ Signature valid (AWS KMS)"
             : `✗ Invalid${result.error ? ` — ${result.error}` : ""}`}
         </div>
       )}

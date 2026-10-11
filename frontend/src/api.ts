@@ -75,8 +75,39 @@ export async function getJob(executionArn: string) {
 }
 
 export async function verifyPassport(passportId: string) {
-  const res = await apiFetch(`/passports/${passportId}/verify`);
-  if (!res.ok) throw new Error(await res.text());
+  // Golden-demo pages (/devices/sample-*) use fake passport IDs that are not in DynamoDB/S3.
+  // Detect by ID prefix / known sample list so we don't hit AWS "not found".
+  const isDemo =
+    /^pass-(r740|t14|c9300)-/i.test(passportId) ||
+    Object.values(SAMPLE_GOLDEN_RUNS).some((run) =>
+      (run.passports || []).some((p) => p.passport_id === passportId)
+    );
+
+  if (isDemo) {
+    return {
+      valid: true,
+      passport_id: passportId,
+      verification_status: "DEMO_SAMPLE_VALID",
+      message:
+        "Demo passport verified locally. Run a live Recovery Intake to mint real KMS-signed passports.",
+      signing_algorithm: "ECDSA_SHA_256",
+      verified_at: new Date().toISOString(),
+      demo: true,
+    };
+  }
+
+  const res = await apiFetch(`/passports/${encodeURIComponent(passportId)}/verify`);
+  if (!res.ok) {
+    const text = await res.text();
+    let msg = text;
+    try {
+      const parsed = JSON.parse(text);
+      msg = parsed.error || parsed.message || text;
+    } catch {
+      /* keep raw */
+    }
+    throw new Error(msg || `Verify failed (${res.status})`);
+  }
   return res.json();
 }
 
