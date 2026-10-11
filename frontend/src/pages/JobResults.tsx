@@ -509,9 +509,23 @@ export function JobResultsPage() {
                   ...p,
                   passport_id: p.passport_id,
                   component_id: p.component_id || linked.component_id,
-                  comp_type: p.comp_type || p.class || linked.comp_type || linked.class,
-                  health_score: p.health_score ?? linked.health_score,
-                  letter_grade: p.letter_grade || linked.letter_grade,
+                  comp_type:
+                    p.comp_type ||
+                    p.component_type ||
+                    p.class ||
+                    linked.comp_type ||
+                    linked.class ||
+                    linked.component_type,
+                  // Prefer component diagnostics (where Lambda stores them)
+                  health_score: linked.health_score ?? p.health_score,
+                  letter_grade:
+                    linked.diagnostics_grade ||
+                    linked.letter_grade ||
+                    p.letter_grade ||
+                    p.diagnostics_grade,
+                  diagnostics_grade:
+                    linked.diagnostics_grade || p.diagnostics_grade || linked.letter_grade,
+                  tests: p.tests || linked.test_results || linked.tests,
                   serial:
                     p.serial ||
                     p.serial_number ||

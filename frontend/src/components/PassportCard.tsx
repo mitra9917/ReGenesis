@@ -31,16 +31,43 @@ export function PassportCard({ passport, deviceSerial }: Props) {
   const [copiedId, setCopiedId] = useState(false);
 
   const passportId = passport.passport_id;
-  const compType = passport.comp_type || passport.class || "Component";
+  const compType =
+    passport.comp_type ||
+    (passport as any).component_type ||
+    passport.class ||
+    "Component";
   const componentId = passport.component_id || "—";
   const serial =
     passport.serial ||
     passport.serial_number ||
     deviceSerial ||
-    (componentId !== "—" ? `SN-${String(componentId).toUpperCase()}` : "—");
-  const grade = passport.letter_grade || "—";
-  const health =
-    typeof passport.health_score === "number" ? `${passport.health_score}/100` : "—";
+    (componentId !== "—" ? `SN-${String(componentId).slice(0, 8).toUpperCase()}` : "—");
+  const grade =
+    passport.letter_grade ||
+    (passport as any).diagnostics_grade ||
+    (passport as any).grade ||
+    "—";
+
+  // Live AWS: health is on the component row; passport JSON may only have `tests`
+  let health = "—";
+  const rawHealth = passport.health_score ?? (passport as any).health;
+  if (typeof rawHealth === "number") {
+    health = `${Math.round(rawHealth <= 1 ? rawHealth * 100 : rawHealth)}/100`;
+  } else if (typeof rawHealth === "string" && rawHealth.trim()) {
+    const n = parseFloat(rawHealth);
+    health = Number.isFinite(n)
+      ? `${Math.round(n <= 1 ? n * 100 : n)}/100`
+      : rawHealth;
+  } else if ((passport as any).tests && typeof (passport as any).tests === "object") {
+    const tests = (passport as any).tests as Record<string, unknown>;
+    const vals = Object.values(tests);
+    const passed = vals.filter((v) => String(v).toLowerCase() === "pass" || v === 0 || v === true);
+    if (vals.length) {
+      health = `${Math.round((passed.length / vals.length) * 100)}/100 (from tests)`;
+    }
+  } else if (passport.status?.includes("qualified")) {
+    health = "Qualified";
+  }
 
   async function onVerify() {
     if (!passportId) {
