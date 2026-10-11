@@ -41,13 +41,13 @@ Global e-waste reached **~62 million tonnes** in 2022. Most still-valuable GPUs,
 ```mermaid
 flowchart LR
   subgraph Intake
-    UI[React UI<br/>S3 + CloudFront]
+    UI[React UI on S3 CloudFront]
     API[API Gateway]
   end
 
   subgraph Orchestration
     IN[Ingest Lambda]
-    SF[Step Functions<br/>RecoveryFlow]
+    SF[Step Functions RecoveryFlow]
   end
 
   subgraph Sense
@@ -65,13 +65,13 @@ flowchart LR
 
   subgraph Prove
     PASS[Passport Lambda]
-    KMS[KMS Sign / Verify]
-    IMPACT[Impact + CloudWatch]
+    KMS[KMS Sign and Verify]
+    IMPACT[Impact and CloudWatch]
   end
 
   subgraph Persist
-    S3[(S3 images · logs · passports)]
-    DDB[(DynamoDB Devices · Components · Passports · Events)]
+    S3[(S3 images logs passports)]
+    DDB[(DynamoDB tables)]
   end
 
   UI --> API --> IN --> SF
@@ -100,17 +100,17 @@ One job = one device photo + catalog model key. Step Functions owns the pipeline
 
 ```mermaid
 stateDiagram-v2
-  [*] --> INGESTED: POST /devices
+  [*] --> INGESTED: POST devices
   INGESTED --> DETECTING: StartExecution
-  DETECTING --> PARSING: detections (+ OCR)
+  DETECTING --> PARSING: detections with OCR
   PARSING --> AUDITING: components persisted
   AUDITING --> PLANNING: completeness score
-  PLANNING --> TESTING: RVS-ordered steps
-  TESTING --> PASSPORTS: per-component diagnostics
-  PASSPORTS --> IMPACT: KMS-signed DPPs
-  IMPACT --> COMPLETED: metrics + SNS
-  DETECTING --> FALLBACK: low conf / no endpoint
-  FALLBACK --> PARSING: catalog-assisted BOM layout
+  PLANNING --> TESTING: RVS ordered steps
+  TESTING --> PASSPORTS: per component diagnostics
+  PASSPORTS --> IMPACT: KMS signed DPPs
+  IMPACT --> COMPLETED: metrics and SNS
+  DETECTING --> FALLBACK: low conf or no endpoint
+  FALLBACK --> PARSING: catalog assisted BOM
   DETECTING --> FAILED: hard error
   TESTING --> FAILED
   FAILED --> [*]
@@ -148,25 +148,25 @@ sequenceDiagram
   participant S3 as S3
   participant DDB as DynamoDB
 
-  Op->>APIGW: POST /devices (image + model)
+  Op->>APIGW: POST devices with image and model
   APIGW->>Ingest: create device
-  Ingest->>S3: images/{id}/original.*
+  Ingest->>S3: store original image
   Ingest->>DDB: Devices
   Ingest->>SF: StartExecution RecoveryFlow
   SF->>Det: detect
-  alt Vision path (endpoint InService)
+  alt Vision path endpoint InService
     Det->>SM: InvokeEndpoint
-    SM-->>Det: class, confidence, bbox[]
-  else Catalog-assisted / mock
-    Det-->>Det: BOM layout + confidence policy
+    SM-->>Det: class confidence bbox
+  else Catalog assisted or mock
+    Det-->>Det: BOM layout and confidence policy
   end
-  Det->>DDB: Components + PipelineEvents
-  SF->>SF: plan → diagnose → passport → impact
-  Note over SF,KMS: Passport Lambda Signs canonical JSON
+  Det->>DDB: Components and PipelineEvents
+  SF->>SF: plan diagnose passport impact
+  Note over SF,KMS: Passport Lambda signs canonical JSON
   SF->>KMS: Sign
-  SF->>S3: passports/{id}.json
-  Op->>APIGW: GET /devices/{id} · GET /passports/{id}/verify
-  KMS-->>Op: valid true / false
+  SF->>S3: store passport JSON
+  Op->>APIGW: GET device and verify passport
+  KMS-->>Op: valid true or false
 ```
 
 ---
@@ -299,15 +299,15 @@ erDiagram
     string device_model_key
     string status
     string detection_source
-    map completeness_audit
-    map impact_summary
+    string completeness_audit
+    string impact_summary
   }
   COMPONENTS {
     string device_id PK
-    string component_id SK
+    string component_id PK
     string comp_type
-    number detection_confidence
-    list bbox
+    float detection_confidence
+    string bbox
     string status
   }
   PASSPORTS {
@@ -317,7 +317,7 @@ erDiagram
   }
   PIPELINE_EVENTS {
     string device_id PK
-    string event_id SK
+    string event_id PK
     string event_type
   }
 ```
