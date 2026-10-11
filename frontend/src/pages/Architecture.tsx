@@ -14,8 +14,8 @@ export function ArchitecturePage() {
       step: "02",
       name: "Invoke Detection",
       lambda: "InvokeDetectionFunction",
-      aws: "SageMaker (YOLOv8) + Textract OCR",
-      purpose: "Detects internal subassemblies (CPU, GPU, RAM, SSD, PSU) via SageMaker endpoint or runs catalog-assisted fallback with OCR plate verification.",
+      aws: "SageMaker (YOLOv8) + Tesseract OCR layer",
+      purpose: "Detects internal subassemblies (CPU, GPU, RAM, SSD, PSU) via SageMaker endpoint or runs catalog-assisted fallback with Tesseract plate OCR.",
       latency: "~380ms",
     },
     {
@@ -74,10 +74,10 @@ export function ArchitecturePage() {
       badge: "AI / ML",
     },
     {
-      name: "Amazon Textract",
+      name: "Tesseract OCR (Lambda layer)",
       role: "Model Plate OCR",
-      desc: "Extracts manufacturer labels, serial numbers, and regulatory plates to automatically lock catalog device definitions.",
-      badge: "AI Services",
+      desc: "Extracts manufacturer labels, serial numbers, and regulatory plates via AL2023 Tesseract binaries on Lambda (no Textract).",
+      badge: "OCR / Layer",
     },
     {
       name: "AWS KMS",
@@ -194,7 +194,7 @@ export function ArchitecturePage() {
           <div className="rubric-box">
             <h4 className="rubric-title">Resilience &amp; Fail-Safe Design</h4>
             <p className="rubric-text">
-              Dual-mode optical detection: utilizes SageMaker YOLOv8 if deployed, with seamless zero-downtime fallback to Textract plate OCR + catalog specs. Cost guards prevent endpoint sprawl.
+              Dual-mode optical detection: utilizes SageMaker YOLOv8 if deployed, with seamless fallback to Tesseract plate OCR + catalog specs. Cost guards prevent endpoint sprawl.
             </p>
           </div>
           <div className="rubric-box">

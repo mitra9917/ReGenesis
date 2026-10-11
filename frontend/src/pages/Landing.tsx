@@ -352,9 +352,9 @@ export function LandingPage() {
             <div className="step-number">01</div>
             <h4 className="step-title">Optical Intake &amp; OCR</h4>
             <p className="step-desc">
-              Technician photo ingestion into Amazon S3. Textract scans manufacturer labels and serial numbers to lock catalog profiles.
+              Technician photo ingestion into Amazon S3. Tesseract OCR scans manufacturer labels and serial numbers to lock catalog profiles.
             </p>
-            <div className="step-badge">Amazon S3 · Textract</div>
+            <div className="step-badge">Amazon S3 · Tesseract OCR</div>
           </div>
 
           <div className="workflow-step-card">
