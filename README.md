@@ -128,7 +128,7 @@ stateDiagram-v2
 | **Plan** | Graph + **Reuse Value Score** ordering | High embodied value / lower risk first |
 | **Test** | Deterministic simulated diagnostics (seeded by `component_id`) | Repeatable golden demos for video |
 | **Passport** | Canonical JSON → **KMS Sign** → S3 + DynamoDB | Tamper-evident reuse credential |
-| **Impact** | Mass + CO₂e ranges; CloudWatch custom metrics | ESG-readable, scientifically honest |
+| **Impact** | Mass + CO₂e ranges; CloudWatch custom metrics | ESG-readable, scientificaly honest |
 
 Sequence detail lives in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
