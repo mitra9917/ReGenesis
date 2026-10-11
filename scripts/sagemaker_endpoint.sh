@@ -4,8 +4,8 @@ set -euo pipefail
 
 REGION="${AWS_REGION:-ap-south-1}"
 ENDPOINT_NAME="${ENDPOINT_NAME:-regenesis-yolo-dev}"
-MODEL_NAME="${MODEL_NAME:-regenesis-yolo-model-v2}"
-CONFIG_NAME="${CONFIG_NAME:-regenesis-yolo-config-m5l-v2}"
+MODEL_NAME="${MODEL_NAME:-regenesis-yolo-model-v3}"
+CONFIG_NAME="${CONFIG_NAME:-regenesis-yolo-config-m5l-v3}"
 ROLE_ARN="${SAGEMAKER_ROLE_ARN:-arn:aws:iam::620694778016:role/regenesis-sagemaker-exec}"
 IMAGE="${SAGEMAKER_IMAGE:-763104351884.dkr.ecr.ap-south-1.amazonaws.com/pytorch-inference:2.3.0-cpu-py311-ubuntu20.04-sagemaker}"
 MODEL_DATA="${MODEL_DATA:-s3://regenesis-dev-assetsbucket-xp9zjtzuwy50/models/regenesis-yolo/model.tar.gz}"

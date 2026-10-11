@@ -12,11 +12,24 @@ from __future__ import annotations
 import argparse
 import base64
 import json
+import ssl
 import sys
 from pathlib import Path
 import urllib.request
 import urllib.error
 import boto3
+
+try:
+    import certifi
+except ImportError:  # pragma: no cover
+    certifi = None
+
+
+def _ssl_context() -> ssl.SSLContext:
+    """Mac python.org builds often lack system CA certs; use certifi when present."""
+    if certifi is not None:
+        return ssl.create_default_context(cafile=certifi.where())
+    return ssl.create_default_context()
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "shared" / "python"))
@@ -37,7 +50,7 @@ def get_stack_outputs() -> dict[str, str]:
 def http_get_json(url: str) -> tuple[int, dict]:
     req = urllib.request.Request(url, headers={"Accept": "application/json"})
     try:
-        with urllib.request.urlopen(req, timeout=15) as resp:
+        with urllib.request.urlopen(req, timeout=15, context=_ssl_context()) as resp:
             return resp.status, json.loads(resp.read().decode("utf-8"))
     except urllib.error.HTTPError as err:
         body = err.read().decode("utf-8")

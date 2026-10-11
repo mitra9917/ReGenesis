@@ -100,8 +100,10 @@ def handler(event, context):
                             pass
 
                 events.sort(key=lambda x: str(x.get("created_at") or x.get("event_id") or ""))
-            except Exception:
-                pass
+            except Exception as ev_exc:
+                # Don't fail the whole device payload if audit-log read fails
+                print(f"pipeline_events query failed: {ev_exc}")
+                events = []
 
         for field in ("completeness_audit", "disassembly_plan", "impact_summary"):
             if device.get(field) and isinstance(device[field], str):

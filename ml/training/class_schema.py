@@ -26,8 +26,9 @@ CLASS_MAP: dict[int, str] = {
 }
 
 # Classes with training data in the current e-waste export (others reserved)
-TRAINED_NOW: frozenset[str] = frozenset({"HDD", "NIC", "Other"})
-RESERVED_FOR_LATER: frozenset[str] = frozenset({"CPU", "GPU", "RAM", "SSD", "PSU", "Fan"})
+# Expanded 2026-10-11 via Computer Parts Universe + prior e-waste (NIC/Other).
+TRAINED_NOW: frozenset[str] = frozenset({"CPU", "GPU", "RAM", "SSD", "HDD", "NIC", "Other"})
+RESERVED_FOR_LATER: frozenset[str] = frozenset({"PSU", "Fan"})
 
 REQUIRED_DETECTION_KEYS = frozenset({"class", "confidence", "bbox"})
 ALLOWED_CLASSES = frozenset(CLASS_MAP.values())

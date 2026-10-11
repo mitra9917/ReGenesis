@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { getDevice, getJob, SAMPLE_GOLDEN_RUNS } from "../api";
+import { getDevice, getJob, getPipelineEvents, SAMPLE_GOLDEN_RUNS } from "../api";
 import { DetectionOverlay } from "../components/DetectionOverlay";
 import { PlanTimeline } from "../components/PlanTimeline";
 import { PassportCard } from "../components/PassportCard";
@@ -16,6 +16,21 @@ const PIPELINE_STAGES = [
   { id: "passport", label: "06 Passport", desc: "KMS Signing" },
   { id: "impact", label: "07 Impact", desc: "LCA Ledger" },
 ];
+
+/** API stores completeness as 0–1; golden samples use 0–100. Always show percent. */
+function formatCompletenessScore(score: unknown): string {
+  const n = Number(score);
+  if (!Number.isFinite(n)) return "—";
+  const pct = n <= 1 ? n * 100 : n;
+  const rounded = Math.round(pct * 10) / 10;
+  return `${Number.isInteger(rounded) ? rounded.toFixed(0) : rounded.toFixed(1)}%`;
+}
+
+function auditGapCount(audit: any): number {
+  if (typeof audit?.gap_count === "number") return audit.gap_count;
+  if (Array.isArray(audit?.gaps)) return audit.gaps.length;
+  return 0;
+}
 
 function PipelineEventsTable({ events }: { events: any[] }) {
   if (!events || events.length === 0) {
@@ -157,7 +172,18 @@ export function JobResultsPage() {
 
     try {
       const res = await getDevice(deviceId);
-      setData(res);
+      // Backfill audit log if GetDevice is an older deploy without pipeline_events
+      let events = res.pipeline_events || res.events || [];
+      if (!events.length) {
+        try {
+          const evRes = await getPipelineEvents(deviceId);
+          events = evRes.events || evRes.pipeline_events || [];
+        } catch (evErr) {
+          console.warn("Pipeline events poll warning:", evErr);
+        }
+      }
+      const enriched = { ...res, pipeline_events: events, events };
+      setData(enriched);
       const arn = sessionStorage.getItem(`execution_${deviceId}`) || res.device?.execution_arn;
       let currentJobStatus = jobStatus;
       if (arn) {
@@ -171,7 +197,7 @@ export function JobResultsPage() {
           console.warn("Job status poll warning:", jobErr);
         }
       }
-      return { device: res?.device, jobStatus: currentJobStatus };
+      return { device: enriched?.device, jobStatus: currentJobStatus };
     } catch (apiErr: any) {
       // If live API is unreachable or 404, fallback to default sample run if deviceId matches pattern
       const fallbackKey = Object.keys(SAMPLE_GOLDEN_RUNS).find(k => deviceId.includes(k.replace("sample-", ""))) || "sample-r740";
@@ -403,13 +429,13 @@ export function JobResultsPage() {
 
       {/* SECTION: Completeness Audit */}
       {(activeTab === "all" || activeTab === "audit") && audit && (
-        <div className={`card ${audit.gap_count > 0 ? "audit-card-warn" : "audit-card-ok"}`}>
+        <div className={`card ${auditGapCount(audit) > 0 ? "audit-card-warn" : "audit-card-ok"}`}>
           <div className="audit-header">
             <div>
               <h3 className="card-heading">
                 BOM Completeness Audit:{" "}
-                <span style={{ color: audit.gap_count > 0 ? "var(--warn)" : "var(--accent)" }}>
-                  {audit.score ?? 100}% Score
+                <span style={{ color: auditGapCount(audit) > 0 ? "var(--warn)" : "var(--accent)" }}>
+                  {formatCompletenessScore(audit.score ?? 1)} Score
                 </span>
               </h3>
               <p className="card-subtext">
@@ -419,11 +445,13 @@ export function JobResultsPage() {
             <span
               className="pill"
               style={{
-                background: audit.gap_count > 0 ? "rgba(245, 185, 66, 0.2)" : "rgba(61, 214, 165, 0.2)",
-                color: audit.gap_count > 0 ? "var(--warn)" : "var(--accent)",
+                background: auditGapCount(audit) > 0 ? "rgba(245, 185, 66, 0.2)" : "rgba(61, 214, 165, 0.2)",
+                color: auditGapCount(audit) > 0 ? "var(--warn)" : "var(--accent)",
               }}
             >
-              {audit.status === "complete" ? "✓ 100% BOM Satisfied" : `${audit.gap_count} Under-Detected Gap(s)`}
+              {audit.status === "complete" || audit.within_tolerance
+                ? "✓ 100% BOM Satisfied"
+                : `${auditGapCount(audit)} Under-Detected Gap(s)`}
             </span>
           </div>
 
@@ -455,6 +483,7 @@ export function JobResultsPage() {
             </p>
             <DetectionOverlay
               imageS3Key={device.image_s3_key}
+              components={data.components || []}
               detections={data.detections || []}
               deviceModelKey={device.device_model_key || "poweredge_r740"}
             />
