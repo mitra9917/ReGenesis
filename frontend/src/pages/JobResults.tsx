@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { getDevice, getJob, getPipelineEvents, SAMPLE_GOLDEN_RUNS } from "../api";
 import { DetectionOverlay } from "../components/DetectionOverlay";
@@ -6,6 +6,18 @@ import { PlanTimeline } from "../components/PlanTimeline";
 import { PassportCard } from "../components/PassportCard";
 import { ImpactPanel } from "../components/ImpactPanel";
 import { copyTextToClipboard } from "../clipboard";
+
+/** Dynamo may return JSON as string mid-pipeline; never crash the page on parse. */
+function safeParseJson<T = unknown>(value: unknown, fallback: T | null = null): T | null {
+  if (value == null || value === "") return fallback;
+  if (typeof value === "object") return value as T;
+  if (typeof value !== "string") return fallback;
+  try {
+    return JSON.parse(value) as T;
+  } catch {
+    return fallback;
+  }
+}
 
 const PIPELINE_STAGES = [
   { id: "ingest", label: "01 Ingest", desc: "S3 Image Upload" },
@@ -176,6 +188,10 @@ export function JobResultsPage() {
   const [activeTab, setActiveTab] = useState<"all" | "audit" | "plan" | "passports" | "events">("all");
   const [error, setError] = useState("");
   const [copiedArn, setCopiedArn] = useState(false);
+  const jobStatusRef = useRef(jobStatus);
+  jobStatusRef.current = jobStatus;
+  const hasDataRef = useRef(false);
+  hasDataRef.current = Boolean(data);
 
   const load = useCallback(async () => {
     if (!deviceId) return null;
@@ -235,7 +251,7 @@ export function JobResultsPage() {
       const enriched = { ...res, pipeline_events: events, events };
       setData(enriched);
       const arn = sessionStorage.getItem(`execution_${deviceId}`) || res.device?.execution_arn;
-      let currentJobStatus = jobStatus;
+      let currentJobStatus = jobStatusRef.current;
       if (arn) {
         try {
           const job = await getJob(arn);
@@ -247,9 +263,19 @@ export function JobResultsPage() {
           console.warn("Job status poll warning:", jobErr);
         }
       }
+      // Device status alone is enough when ARN polling is unavailable
+      const deviceStatus = String(enriched?.device?.status || "").toUpperCase();
+      if (deviceStatus === "COMPLETED") currentJobStatus = "SUCCEEDED";
+      if (deviceStatus === "FAILED") currentJobStatus = "FAILED";
+      if (currentJobStatus !== jobStatusRef.current) {
+        setJobStatus(currentJobStatus);
+      }
       return { device: enriched?.device, jobStatus: currentJobStatus };
     } catch (apiErr: any) {
-      // If live API is unreachable or 404, fallback to default sample run if deviceId matches pattern
+      // Only fall back to golden samples after we have no live row yet — avoid wiping a real run
+      if (hasDataRef.current) {
+        throw apiErr instanceof Error ? apiErr : new Error("Device poll failed");
+      }
       const fallbackKey = Object.keys(SAMPLE_GOLDEN_RUNS).find(k => deviceId.includes(k.replace("sample-", ""))) || "sample-r740";
       const sample = SAMPLE_GOLDEN_RUNS[fallbackKey];
       const samplePayload = {
@@ -286,10 +312,10 @@ export function JobResultsPage() {
       setJobStatus("SUCCEEDED");
       return { device: samplePayload.device, jobStatus: "SUCCEEDED" };
     }
-  }, [deviceId, jobStatus]);
+  }, [deviceId]);
 
   useEffect(() => {
-    let timer: ReturnType<typeof setInterval>;
+    let timer: ReturnType<typeof setInterval> | undefined;
     let isCancelled = false;
 
     const poll = async () => {
@@ -298,14 +324,14 @@ export function JobResultsPage() {
         if (isCancelled) return;
         setError("");
         const devStatus = result?.device?.status;
-        const jStatus = result?.jobStatus;
+        const jStatus = result?.jobStatus || "";
         const isJobDone = ["SUCCEEDED", "FAILED", "TIMED_OUT", "ABORTED"].includes(jStatus);
-        const isDeviceDone = ["COMPLETED", "FAILED"].includes(devStatus);
-        if (isJobDone && isDeviceDone) {
-          clearInterval(timer);
+        const isDeviceDone = ["COMPLETED", "FAILED"].includes(String(devStatus || "").toUpperCase());
+        if (isJobDone || isDeviceDone) {
+          if (timer) clearInterval(timer);
         }
       } catch (e) {
-        if (!isCancelled && !data) {
+        if (!isCancelled && !hasDataRef.current) {
           setError(e instanceof Error ? e.message : "Load failed");
         }
       }
@@ -315,9 +341,9 @@ export function JobResultsPage() {
     timer = setInterval(poll, 3000);
     return () => {
       isCancelled = true;
-      clearInterval(timer);
+      if (timer) clearInterval(timer);
     };
-  }, [load, data]);
+  }, [load]);
 
   if (error && !data) {
     return (
@@ -344,15 +370,9 @@ export function JobResultsPage() {
   const device = data.device || {};
   const source = device.detection_source || "unknown";
   const visionBadge = source === "vision" || source === "hybrid";
-  const plan = typeof device.disassembly_plan === "string"
-    ? JSON.parse(device.disassembly_plan)
-    : device.disassembly_plan;
-  const impact = typeof device.impact_summary === "string"
-    ? JSON.parse(device.impact_summary)
-    : device.impact_summary;
-  const audit = typeof device.completeness_audit === "string"
-    ? JSON.parse(device.completeness_audit)
-    : device.completeness_audit;
+  const plan = safeParseJson(device.disassembly_plan, null);
+  const impact = safeParseJson(device.impact_summary, null);
+  const audit = safeParseJson(device.completeness_audit, null);
 
   const jobColor =
     jobStatus === "SUCCEEDED"
@@ -556,7 +576,13 @@ export function JobResultsPage() {
           <p className="card-subtext">
             Avoided embodied carbon and diverted landfill mass citing peer-reviewed manufacturer benchmarks:
           </p>
-          <ImpactPanel impact={impact} />
+          {impact ? (
+            <ImpactPanel impact={impact} />
+          ) : (
+            <p className="card-subtext" style={{ marginTop: "0.75rem" }}>
+              Impact ledger will appear when the RecoveryFlow impact stage completes…
+            </p>
+          )}
         </div>
       )}
 
