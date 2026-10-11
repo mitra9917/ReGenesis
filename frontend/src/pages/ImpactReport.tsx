@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { getDevice, SAMPLE_GOLDEN_RUNS, SampleDeviceRecord } from "../api";
+import { copyTextToClipboard } from "../clipboard";
 
 export function ImpactReportPage() {
   const [selectedRunKey, setSelectedRunKey] = useState<string>("fleet-aggregate");
@@ -31,7 +32,8 @@ export function ImpactReportPage() {
 
   // Pre-calculated empirical factors
   const sampleR740 = SAMPLE_GOLDEN_RUNS["sample-r740"];
-  const sampleThinkpad = SAMPLE_GOLDEN_RUNS["sample-thinkpad"];
+  // Key in SAMPLE_GOLDEN_RUNS is sample-t14 (not sample-thinkpad)
+  const sampleThinkpad = SAMPLE_GOLDEN_RUNS["sample-t14"];
   const sampleCisco = SAMPLE_GOLDEN_RUNS["sample-c9300"];
 
   // Determine current active impact view
@@ -61,7 +63,7 @@ export function ImpactReportPage() {
     goldGrams = 1.2;
     copperKg = 3.1;
     neoGrams = 45;
-  } else if (selectedRunKey === "sample-thinkpad") {
+  } else if (selectedRunKey === "sample-t14") {
     activeTitle = sampleThinkpad.display_name;
     activeSubtitle = "Enterprise 14-inch Business Laptop with 50Wh Li-Ion internal battery pack, NVMe storage, and SO-DIMMs.";
     co2eMid = sampleThinkpad.impact.co2e_avoided_kg;
@@ -161,9 +163,16 @@ export function ImpactReportPage() {
       ],
     };
 
-    navigator.clipboard.writeText(JSON.stringify(report, null, 2));
-    setCopiedAuditJson(true);
-    setTimeout(() => setCopiedAuditJson(false), 2500);
+    void (async () => {
+      const payload = JSON.stringify(report, null, 2);
+      const ok = await copyTextToClipboard(payload);
+      if (ok) {
+        setCopiedAuditJson(true);
+        setTimeout(() => setCopiedAuditJson(false), 2500);
+      } else {
+        window.prompt("Copy ESG Audit JSON:", payload);
+      }
+    })();
   }
 
   return (
@@ -206,8 +215,8 @@ export function ImpactReportPage() {
             🖥️ Dell PowerEdge R740 (Rack Server)
           </button>
           <button
-            className={`device-pill-btn ${selectedRunKey === "sample-thinkpad" ? "pill-btn-active" : ""}`}
-            onClick={() => setSelectedRunKey("sample-thinkpad")}
+            className={`device-pill-btn ${selectedRunKey === "sample-t14" ? "pill-btn-active" : ""}`}
+            onClick={() => setSelectedRunKey("sample-t14")}
           >
             💻 Lenovo ThinkPad T14 (Enterprise Laptop)
           </button>
@@ -380,7 +389,7 @@ export function ImpactReportPage() {
               <span className="mineral-symbol">Li/Co</span>
               <span className="mineral-name">Lithium &amp; Cobalt (NMC Cells)</span>
             </div>
-            <div className="mineral-val font-mono">{selectedRunKey === "sample-thinkpad" || selectedRunKey === "fleet-aggregate" ? "50 Wh (28g Co)" : "N/A (Grid Fed)"}</div>
+            <div className="mineral-val font-mono">{selectedRunKey === "sample-t14" || selectedRunKey === "fleet-aggregate" ? "50 Wh (28g Co)" : "N/A (Grid Fed)"}</div>
             <p className="mineral-desc">Preserved in intact notebook cells, avoiding catastrophic thermal runaway in industrial shredder hammermills.</p>
           </div>
         </div>

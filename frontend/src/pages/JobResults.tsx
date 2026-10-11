@@ -5,6 +5,7 @@ import { DetectionOverlay } from "../components/DetectionOverlay";
 import { PlanTimeline } from "../components/PlanTimeline";
 import { PassportCard } from "../components/PassportCard";
 import { ImpactPanel } from "../components/ImpactPanel";
+import { copyTextToClipboard } from "../clipboard";
 
 const PIPELINE_STAGES = [
   { id: "ingest", label: "01 Ingest", desc: "S3 Image Upload" },
@@ -286,11 +287,14 @@ export function JobResultsPage() {
 
   const executionArn = sessionStorage.getItem(`execution_${deviceId}`) || device.execution_arn;
 
-  function copyArn() {
-    if (executionArn) {
-      navigator.clipboard.writeText(executionArn);
+  async function copyArn() {
+    if (!executionArn) return;
+    const ok = await copyTextToClipboard(executionArn);
+    if (ok) {
       setCopiedArn(true);
       setTimeout(() => setCopiedArn(false), 2000);
+    } else {
+      window.prompt("Copy Execution ARN:", executionArn);
     }
   }
 
@@ -494,9 +498,35 @@ export function JobResultsPage() {
 
           {data.passports && data.passports.length > 0 ? (
             <div className="passports-grid">
-              {data.passports.map((p: any) => (
-                <PassportCard key={p.passport_id} passport={p} />
-              ))}
+              {data.passports.map((p: any) => {
+                const comps = data.components || [];
+                const linked =
+                  comps.find((c: any) => c.passport_id && c.passport_id === p.passport_id) ||
+                  comps.find((c: any) => c.component_id && c.component_id === p.component_id) ||
+                  {};
+                const enriched = {
+                  ...linked,
+                  ...p,
+                  passport_id: p.passport_id,
+                  component_id: p.component_id || linked.component_id,
+                  comp_type: p.comp_type || p.class || linked.comp_type || linked.class,
+                  health_score: p.health_score ?? linked.health_score,
+                  letter_grade: p.letter_grade || linked.letter_grade,
+                  serial:
+                    p.serial ||
+                    p.serial_number ||
+                    linked.serial ||
+                    device.serial_hint ||
+                    undefined,
+                };
+                return (
+                  <PassportCard
+                    key={enriched.passport_id || enriched.component_id}
+                    passport={enriched}
+                    deviceSerial={device.serial_hint}
+                  />
+                );
+              })}
             </div>
           ) : (
             <div className="empty-state-card">

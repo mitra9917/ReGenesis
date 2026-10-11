@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { verifyPassport, SAMPLE_GOLDEN_RUNS } from "../api";
+import { copyTextToClipboard } from "../clipboard";
 
 interface VerificationState {
   loading: boolean;
@@ -123,10 +124,15 @@ export function PassportsPage() {
     }
   }
 
-  function handleCopyJson(passportObj: any) {
-    navigator.clipboard.writeText(JSON.stringify(passportObj, null, 2));
-    setCopiedJson(true);
-    setTimeout(() => setCopiedJson(false), 2000);
+  async function handleCopyJson(passportObj: any) {
+    const payload = JSON.stringify(passportObj, null, 2);
+    const ok = await copyTextToClipboard(payload);
+    if (ok) {
+      setCopiedJson(true);
+      setTimeout(() => setCopiedJson(false), 2000);
+    } else {
+      window.prompt("Copy Certificate JSON:", payload);
+    }
   }
 
   return (
