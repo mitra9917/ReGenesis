@@ -9,6 +9,7 @@ import { PassportsPage } from "./pages/Passports";
 import { ImpactReportPage } from "./pages/ImpactReport";
 import { ArchitecturePage } from "./pages/Architecture";
 import "./styles.css";
+import "./design.css";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>

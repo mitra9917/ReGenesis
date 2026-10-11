@@ -32,54 +32,104 @@ function auditGapCount(audit: any): number {
   return 0;
 }
 
+const STAGE_LABELS: Record<string, string> = {
+  ingest: "01 Ingest",
+  detect: "02 Detect",
+  parse: "03 Parse",
+  plan: "04 Plan",
+  test: "05 Test",
+  passport: "06 Passport",
+  impact: "07 Impact",
+};
+
+function formatEventTime(raw: string | undefined) {
+  if (!raw) return "—";
+  return raw.replace("T", " ").replace(/\.\d+Z?$/, " UTC").replace(/Z$/, " UTC");
+}
+
+function formatEventDetail(detail: unknown): { pairs: [string, string][]; fallback: string } {
+  if (!detail) return { pairs: [], fallback: "—" };
+  if (typeof detail !== "object") return { pairs: [], fallback: String(detail) };
+  const pairs = Object.entries(detail as Record<string, unknown>)
+    .slice(0, 5)
+    .map(([k, v]) => [k, typeof v === "object" ? JSON.stringify(v) : String(v)] as [string, string]);
+  return { pairs, fallback: pairs.length ? "" : "—" };
+}
+
 function PipelineEventsTable({ events }: { events: any[] }) {
   if (!events || events.length === 0) {
     return (
-      <div className="empty-state-card">
-        <span className="empty-state-icon">📋</span>
-        <p className="empty-state-title">No Pipeline Events Logged Yet</p>
-        <p className="empty-state-desc">Events will appear here as each Step Functions Lambda stage completes.</p>
+      <div className="audit-empty">
+        <p className="audit-empty-title">No pipeline events yet</p>
+        <p className="audit-empty-desc">
+          Entries appear as each Step Functions Lambda stage completes.
+        </p>
       </div>
     );
   }
+
+  const okCount = events.filter((e) => e.status === "succeeded").length;
+
   return (
-    <div className="impact-breakdown-wrap">
-      <table className="impact-table">
-        <thead>
-          <tr>
-            <th>Time (UTC)</th>
-            <th>Stage</th>
-            <th>Status</th>
-            <th>Detail</th>
-          </tr>
-        </thead>
-        <tbody>
-          {events.map((ev: any) => {
-            const isOk = ev.status === "succeeded";
-            const isFail = ev.status === "failed";
-            const color = isOk ? "var(--accent)" : isFail ? "var(--danger)" : "var(--warn)";
-            const detail = typeof ev.detail === "object" ? ev.detail : {};
-            const detailStr = Object.entries(detail)
-              .slice(0, 4)
-              .map(([k, v]) => `${k}: ${v}`)
-              .join(" · ");
-            return (
-              <tr key={ev.event_id}>
-                <td className="font-mono text-muted text-xs whitespace-nowrap">
-                  {(ev.created_at || "").replace("T", " ").replace("Z", "")}
-                </td>
-                <td className="font-semibold text-uppercase text-xs tracking-wider">
-                  {ev.event_type}
-                </td>
-                <td style={{ color }} className="font-bold">
-                  {ev.status}
-                </td>
-                <td className="text-muted text-xs">{detailStr || "-"}</td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+    <div className="audit-trail">
+      <div className="audit-trail-summary">
+        <span>
+          <strong>{events.length}</strong> events
+        </span>
+        <span className="audit-trail-dot" aria-hidden="true" />
+        <span>
+          <strong>{okCount}</strong> succeeded
+        </span>
+        <span className="audit-trail-dot" aria-hidden="true" />
+        <span>DynamoDB · PipelineEvents</span>
+      </div>
+
+      <ol className="audit-trail-list">
+        {events.map((ev: any, idx: number) => {
+          const status = String(ev.status || "unknown").toLowerCase();
+          const isOk = status === "succeeded";
+          const isFail = status === "failed";
+          const stageKey = String(ev.event_type || "stage").toLowerCase();
+          const stageLabel = STAGE_LABELS[stageKey] || stageKey;
+          const { pairs, fallback } = formatEventDetail(ev.detail);
+
+          return (
+            <li
+              key={ev.event_id || `${stageKey}-${idx}`}
+              className={`audit-trail-item ${isOk ? "is-ok" : isFail ? "is-fail" : "is-pending"}`}
+            >
+              <div className="audit-trail-rail" aria-hidden="true">
+                <span className="audit-trail-node" />
+              </div>
+              <div className="audit-trail-body">
+                <div className="audit-trail-row">
+                  <div className="audit-trail-stage">
+                    <span className="audit-stage-name">{stageLabel}</span>
+                    <span className={`audit-status-pill status-${isOk ? "ok" : isFail ? "fail" : "wait"}`}>
+                      {status}
+                    </span>
+                  </div>
+                  <time className="audit-trail-time font-mono">
+                    {formatEventTime(ev.created_at)}
+                  </time>
+                </div>
+                {pairs.length > 0 ? (
+                  <div className="audit-detail-chips">
+                    {pairs.map(([k, v]) => (
+                      <span key={k} className="audit-detail-chip">
+                        <span className="audit-detail-k">{k}</span>
+                        <span className="audit-detail-v font-mono">{v}</span>
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="audit-detail-fallback">{fallback}</p>
+                )}
+              </div>
+            </li>
+          );
+        })}
+      </ol>
     </div>
   );
 }
@@ -512,21 +562,23 @@ export function JobResultsPage() {
 
       {/* SECTION: Second-Life Hardware Passports */}
       {(activeTab === "all" || activeTab === "passports") && (
-        <div className="card">
-          <div className="passport-section-header">
+        <div className="card dpp-section">
+          <div className="dpp-section-header">
             <div>
+              <p className="dpp-section-index">Passports · KMS</p>
               <h3 className="card-heading">Second-Life Digital Product Passports</h3>
               <p className="card-subtext">
-                Certified subassemblies with deterministic diagnostic health scores, cryptographically signed with AWS KMS.
+                Each qualified part gets a signed credential — health grade, lineage, and
+                one-click AWS KMS verification.
               </p>
             </div>
-            <Link to="/passports" className="btn btn-sm btn-outline">
-              Open Full DPP Registry Workbench →
+            <Link to="/passports" className="pl-btn pl-btn-secondary">
+              Open registry →
             </Link>
           </div>
 
           {data.passports && data.passports.length > 0 ? (
-            <div className="passports-grid">
+            <div className="passports-grid dpp-grid">
               {data.passports.map((p: any) => {
                 const comps = data.components || [];
                 const linked =
@@ -585,11 +637,17 @@ export function JobResultsPage() {
 
       {/* SECTION: Pipeline Audit Log */}
       {(activeTab === "all" || activeTab === "events") && (
-        <div className="card">
-          <h3 className="card-heading">Pipeline Audit Log (DynamoDB PipelineEvents)</h3>
-          <p className="card-subtext">
-            Chronological audit trail across all Step Functions Lambda stages:
-          </p>
+        <div className="card audit-section">
+          <div className="audit-section-header">
+            <div>
+              <p className="dpp-section-index">Audit · Step Functions</p>
+              <h3 className="card-heading">Pipeline Audit Log</h3>
+              <p className="card-subtext">
+                Chronological trail of every Lambda stage — the same evidence judges see in
+                the RecoveryFlow console.
+              </p>
+            </div>
+          </div>
           <PipelineEventsTable events={events} />
         </div>
       )}

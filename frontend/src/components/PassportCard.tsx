@@ -20,6 +20,28 @@ type Props = {
   deviceSerial?: string;
 };
 
+function healthPercent(passport: PassportLike): number | null {
+  const rawHealth = passport.health_score ?? (passport as any).health;
+  if (typeof rawHealth === "number") {
+    return Math.round(rawHealth <= 1 ? rawHealth * 100 : rawHealth);
+  }
+  if (typeof rawHealth === "string" && rawHealth.trim()) {
+    const n = parseFloat(rawHealth);
+    if (Number.isFinite(n)) return Math.round(n <= 1 ? n * 100 : n);
+  }
+  const tests = (passport as any).tests;
+  if (tests && typeof tests === "object") {
+    const vals = Object.values(tests as Record<string, unknown>);
+    if (vals.length) {
+      const passed = vals.filter(
+        (v) => String(v).toLowerCase() === "pass" || v === 0 || v === true
+      );
+      return Math.round((passed.length / vals.length) * 100);
+    }
+  }
+  return null;
+}
+
 export function PassportCard({ passport, deviceSerial }: Props) {
   const [result, setResult] = useState<{
     valid?: boolean;
@@ -47,27 +69,14 @@ export function PassportCard({ passport, deviceSerial }: Props) {
     (passport as any).diagnostics_grade ||
     (passport as any).grade ||
     "—";
-
-  // Live AWS: health is on the component row; passport JSON may only have `tests`
-  let health = "—";
-  const rawHealth = passport.health_score ?? (passport as any).health;
-  if (typeof rawHealth === "number") {
-    health = `${Math.round(rawHealth <= 1 ? rawHealth * 100 : rawHealth)}/100`;
-  } else if (typeof rawHealth === "string" && rawHealth.trim()) {
-    const n = parseFloat(rawHealth);
-    health = Number.isFinite(n)
-      ? `${Math.round(n <= 1 ? n * 100 : n)}/100`
-      : rawHealth;
-  } else if ((passport as any).tests && typeof (passport as any).tests === "object") {
-    const tests = (passport as any).tests as Record<string, unknown>;
-    const vals = Object.values(tests);
-    const passed = vals.filter((v) => String(v).toLowerCase() === "pass" || v === 0 || v === true);
-    if (vals.length) {
-      health = `${Math.round((passed.length / vals.length) * 100)}/100 (from tests)`;
-    }
-  } else if (passport.status?.includes("qualified")) {
-    health = "Qualified";
-  }
+  const health = healthPercent(passport);
+  const healthLabel =
+    health != null
+      ? `${health}/100`
+      : passport.status?.includes("qualified")
+        ? "Qualified"
+        : "—";
+  const algo = passport.signature_algorithm || "ECDSA_SHA_256";
 
   async function onVerify() {
     if (!passportId) {
@@ -95,57 +104,72 @@ export function PassportCard({ passport, deviceSerial }: Props) {
   }
 
   return (
-    <div className="passport-card-item">
-      <div className="passport-card-meta">
-        <div className="passport-card-title-row">
-          <span className="comp-badge">{compType}</span>
-          {grade !== "—" && <span className="pill pill-catalog">{grade}</span>}
+    <article className="dpp-card">
+      <header className="dpp-card-top">
+        <div className="dpp-card-tags">
+          <span className="dpp-type">{compType}</span>
+          {grade !== "—" && <span className="dpp-grade">{grade}</span>}
         </div>
-        <div className="passport-card-lines">
-          <div>
-            <span className="meta-k">Component ID:</span>{" "}
-            <span className="font-mono">{componentId}</span>
-          </div>
-          <div>
-            <span className="meta-k">Serial / Tag:</span>{" "}
-            <span className="font-mono">{serial}</span>
-          </div>
-          <div>
-            <span className="meta-k">Passport ID:</span>{" "}
-            <span className="font-mono text-xs">{passportId}</span>
-          </div>
-          <div>
-            <span className="meta-k">Health:</span> <strong>{health}</strong>
-          </div>
+        <span className="dpp-seal">KMS signed</span>
+      </header>
+
+      <div className="dpp-health">
+        <div>
+          <span className="dpp-health-label">Health score</span>
+          <strong className="dpp-health-value">{healthLabel}</strong>
         </div>
+        {health != null && (
+          <div className="dpp-health-bar" aria-hidden="true">
+            <span style={{ width: `${Math.min(100, Math.max(0, health))}%` }} />
+          </div>
+        )}
       </div>
 
-      <div className="passport-card-actions">
-        <button type="button" className="btn btn-sm btn-outline" onClick={onCopyId}>
-          {copiedId ? "✓ Copied ID" : "Copy Passport ID"}
+      <dl className="dpp-meta">
+        <div>
+          <dt>Component</dt>
+          <dd className="font-mono">{componentId}</dd>
+        </div>
+        <div>
+          <dt>Serial / tag</dt>
+          <dd className="font-mono">{serial}</dd>
+        </div>
+        <div>
+          <dt>Passport ID</dt>
+          <dd className="font-mono dpp-id">{passportId}</dd>
+        </div>
+        <div>
+          <dt>Algorithm</dt>
+          <dd className="font-mono">{algo}</dd>
+        </div>
+      </dl>
+
+      <div className="dpp-card-actions">
+        <button type="button" className="dpp-btn dpp-btn-ghost" onClick={onCopyId}>
+          {copiedId ? "Copied" : "Copy ID"}
         </button>
         <button
           type="button"
-          className="btn btn-sm btn-secondary"
+          className="dpp-btn dpp-btn-solid"
           onClick={onVerify}
           disabled={loading || !passportId}
         >
-          {loading ? "Verifying…" : "Verify (KMS)"}
+          {loading ? "Verifying…" : "Verify →"}
         </button>
       </div>
 
       {result && (
         <div
-          className="passport-verify-result"
-          style={{ color: result.valid ? "var(--accent)" : "var(--danger)" }}
+          className={`dpp-verify ${result.valid ? "is-valid" : "is-invalid"}`}
+          role="status"
         >
           {result.valid
             ? result.demo
-              ? "✓ Demo passport valid (sample data — not in AWS yet)"
-              : "✓ Signature valid (AWS KMS)"
-            : `✗ Invalid${result.error ? ` — ${result.error}` : ""}`}
+              ? "Demo passport valid (sample — not live AWS)"
+              : "Signature valid · AWS KMS"
+            : `Invalid${result.error ? ` — ${result.error}` : ""}`}
         </div>
       )}
-    </div>
+    </article>
   );
 }

@@ -274,19 +274,35 @@ export function PassportsPage() {
             }}
           />
           <button
-            className="btn btn-primary"
+            className="btn btn-primary btn-with-icon"
             disabled={verification.loading || !selectedPassportId}
             onClick={() => handleVerify(selectedPassportId, false)}
           >
-            {verification.loading && !verification.isSimulatedTamper ? "Verifying with KMS..." : "⚡ 1-Click Verify"}
+            <svg className="btn-glyph" viewBox="0 0 16 16" aria-hidden="true">
+              <path
+                fill="currentColor"
+                d="M8 1.2 2.8 3.4v3.7c0 3.2 2.2 5.5 5.2 6.5 3-1 5.2-3.3 5.2-6.5V3.4L8 1.2Zm-.1 9.1L4.6 6.9l1.1-1.1 2.1 2.1 3.5-3.5 1.1 1.1-4.5 4.8Z"
+              />
+            </svg>
+            {verification.loading && !verification.isSimulatedTamper
+              ? "Verifying with KMS..."
+              : "1-Click Verify"}
           </button>
           <button
-            className="btn btn-danger-outline"
+            className="btn btn-danger-outline btn-with-icon"
             disabled={verification.loading || !selectedPassportId}
             onClick={() => handleVerify(selectedPassportId, true)}
             title="Simulate payload tampering to test signature rejection (Issue #36 / I-3.2.3)"
           >
-            {verification.loading && verification.isSimulatedTamper ? "Testing..." : "🚨 Simulate Tamper Rejection"}
+            <svg className="btn-glyph" viewBox="0 0 16 16" aria-hidden="true">
+              <path
+                fill="currentColor"
+                d="M8 1.3 1.8 13.2h12.4L8 1.3Zm0 3.4.9 5.1H7.1L8 4.7Zm0 6.2c.5 0 .9.4.9.9s-.4.9-.9.9-.9-.4-.9-.9.4-.9.9-.9Z"
+              />
+            </svg>
+            {verification.loading && verification.isSimulatedTamper
+              ? "Testing..."
+              : "Simulate Tamper Rejection"}
           </button>
         </div>
 
@@ -446,7 +462,7 @@ export function PassportsPage() {
                           }}
                           title="1-click cryptographic KMS verification"
                         >
-                          ⚡ Verify
+                          Verify
                         </button>
                         <button
                           className="btn btn-xs btn-outline"

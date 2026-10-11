@@ -1,0 +1,27 @@
+---
+description: RE:GENESIS UI — PolicyLens-inspired light research aesthetic
+globs: frontend/**/*.{tsx,css,html}
+alwaysApply: false
+---
+
+# RE:GENESIS frontend aesthetic
+
+Reference: https://researchh-five.vercel.app/ (PolicyLens)
+
+## Palette
+- Frame: `#F6F5F0` on outer `#111111`
+- Ink: `#111111` · muted: `#6D6D6D` · line: `#D8D6CF`
+- Highlight: `#C8F06A` on italic `<em>` keywords
+- Dark product cards: `#111` / `#141414` with lime status chips
+
+## Type
+- **Inter** 400/500/600 — medium weight headlines, tight tracking (~-0.035em)
+- Eyebrows: 11px, 600, uppercase, wide letter-spacing
+- Body: muted gray, comfortable line-height ~1.55
+
+## UI
+- Pill CTAs (`border-radius: 999px`): solid black primary, white + gray border secondary
+- Lime square bullets on hero feature list
+- Large rounded dark cards (~22px) for product demos
+- Section indexes like `01 / Pipeline`
+- Sparse white panels with hairline borders — no glass, no neon glow, no emoji
